@@ -10,6 +10,25 @@ It is a drop-in replacement for
 [preservim/vim-markdown](https://github.com/preservim/vim-markdown) with a fix
 for a long-standing syntax highlighting bug (see [Motivation](#motivation)).
 
+## Feature list
+
+| Feature | Description |
+|---------|-------------|
+| Syntax highlighting | Headings, bold, italic, bold italic, inline code, fenced code blocks, indented code blocks, links, images, autolinks, link definitions, blockquotes, ordered and unordered lists, checkboxes, horizontal rules, footnotes, line breaks |
+| Fenced code highlighting | Embedded language syntax inside `` ``` `` blocks (e.g. Python, JavaScript, Bash) |
+| LaTeX math | `$...$` inline and `$$...$$` display math via included TeX syntax |
+| Strikethrough | `~~text~~` highlighting |
+| Frontmatter | YAML (`---`), TOML (`+++`), and JSON (`{}`) frontmatter highlighting |
+| Concealing | Hide syntax characters (`*`, `` ` ``, `[`, `]`, etc.) when `conceallevel` is set |
+| Header navigation | `]]`, `[[`, `][`, `[]`, `]u`, `]h` for jumping between headers by level, sibling, or parent |
+| URL handling | `gx` to open URLs in a browser, `ge` to open linked files in Vim |
+| Table of contents | `:Toc`, `:Tocv`, `:Toch`, `:Toct` to view; `:InsertToc`, `:InsertNToc` to insert |
+| Header level commands | `:HeaderIncrease`, `:HeaderDecrease`, `:SetexToAtx` |
+| Table formatting | `:TableFormat` to align markdown tables (requires [Tabularize](https://github.com/godlygeek/tabular)) |
+| Reliable highlighting | Correct syntax everywhere in the file — no gray text when jumping to the end |
+| Configurable sync | Tunable lookback (`g:vim_markdown_sync_minlines`) for performance on very large files |
+| Drop-in compatible | Same config variables (`g:vim_markdown_*`), highlight groups, and `<Plug>` mappings as vim-markdown |
+
 ## Motivation
 
 Vim's syntax engine uses a "sync" mechanism to determine how far back it
