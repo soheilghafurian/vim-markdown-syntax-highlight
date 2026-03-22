@@ -1,0 +1,9 @@
+" ftdetect/markdown.vim - Detect markdown files
+
+if !has('patch-7.4.480')
+    " Before this patch, vim used modula2 for .md.
+    autocmd! filetypedetect BufRead,BufNewFile *.md
+endif
+
+autocmd BufRead,BufNewFile *.{md,mdx,mdown,mkd,mkdn,markdown,mdwn} setfiletype markdown
+autocmd BufRead,BufNewFile *.{md,mdx,mdown,mkd,mkdn,markdown,mdwn}.{des3,des,bf,bfa,aes,idea,cast,rc2,rc4,rc5,desx} setfiletype markdown
