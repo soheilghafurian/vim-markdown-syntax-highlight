@@ -1,0 +1,314 @@
+" test/background_highlight.vader
+" Tests for code block and header background highlighting features.
+"
+" Run with:
+"   vim -u NONE -N +'set rtp+=.' +'runtime plugin/vader.vim' +'Vader! test/background_highlight.vader'
+" or from within vim:
+"   :Vader test/background_highlight.vader
+
+" ============================================================================
+" Code block background highlighting
+" ============================================================================
+
+Given markdown (fenced code block with backticks):
+  # Heading
+
+  Some text here.
+
+  ```python
+  def hello():
+      print("world")
+  ```
+
+  More text.
+
+Execute (signs are placed on fenced code block lines):
+  " Source the ftplugin manually since vader doesn't trigger ftdetect
+  set filetype=markdown
+  runtime ftplugin/markdown.vim
+  let signs = sign_getplaced(bufnr('%'), {'group': 'codeblock'})
+  let placed = signs[0].signs
+  let signed_lines = sort(map(copy(placed), 'v:val.lnum'), 'n')
+  " Lines 5-8: the ``` opener, two code lines, and ``` closer
+  AssertEqual [5, 6, 7, 8], signed_lines
+
+Given markdown (fenced code block with tildes):
+  Some text.
+
+  ~~~bash
+  echo "hello"
+  ~~~
+
+  More text.
+
+Execute (signs are placed on tilde-fenced code block lines):
+  set filetype=markdown
+  runtime ftplugin/markdown.vim
+  let signs = sign_getplaced(bufnr('%'), {'group': 'codeblock'})
+  let placed = signs[0].signs
+  let signed_lines = sort(map(copy(placed), 'v:val.lnum'), 'n')
+  AssertEqual [3, 4, 5], signed_lines
+
+Given markdown (multiple code blocks):
+  ```
+  block one
+  ```
+
+  text between
+
+  ```
+  block two
+  ```
+
+Execute (signs are placed on both code blocks but not between):
+  set filetype=markdown
+  runtime ftplugin/markdown.vim
+  let signs = sign_getplaced(bufnr('%'), {'group': 'codeblock'})
+  let placed = signs[0].signs
+  let signed_lines = sort(map(copy(placed), 'v:val.lnum'), 'n')
+  " Block 1: lines 1-3, Block 2: lines 7-9
+  AssertEqual [1, 2, 3, 7, 8, 9], signed_lines
+
+Given markdown (no code blocks):
+  # Heading
+
+  Just some regular text.
+
+  More text.
+
+Execute (no codeblock signs are placed when there are no code blocks):
+  set filetype=markdown
+  runtime ftplugin/markdown.vim
+  let signs = sign_getplaced(bufnr('%'), {'group': 'codeblock'})
+  let placed = signs[0].signs
+  AssertEqual [], placed
+
+Given markdown (indented fenced code block):
+  Text before.
+
+    ```
+    indented code
+    ```
+
+  Text after.
+
+Execute (signs are placed on indented fenced code blocks):
+  set filetype=markdown
+  runtime ftplugin/markdown.vim
+  let signs = sign_getplaced(bufnr('%'), {'group': 'codeblock'})
+  let placed = signs[0].signs
+  let signed_lines = sort(map(copy(placed), 'v:val.lnum'), 'n')
+  AssertEqual [3, 4, 5], signed_lines
+
+Given markdown (empty code block):
+  ```
+  ```
+
+Execute (signs are placed on empty code block delimiters):
+  set filetype=markdown
+  runtime ftplugin/markdown.vim
+  let signs = sign_getplaced(bufnr('%'), {'group': 'codeblock'})
+  let placed = signs[0].signs
+  let signed_lines = sort(map(copy(placed), 'v:val.lnum'), 'n')
+  AssertEqual [1, 2], signed_lines
+
+" ============================================================================
+" Header background highlighting
+" ============================================================================
+
+Given markdown (single h1 header):
+  # Heading 1
+
+  Some text.
+
+Execute (sign is placed on h1 header line):
+  set filetype=markdown
+  runtime ftplugin/markdown.vim
+  let signs = sign_getplaced(bufnr('%'), {'group': 'mdheader1'})
+  let placed = signs[0].signs
+  AssertEqual 1, len(placed)
+  AssertEqual 1, placed[0].lnum
+
+Given markdown (headers at all six levels):
+  # H1
+  ## H2
+  ### H3
+  #### H4
+  ##### H5
+  ###### H6
+
+Execute (each header level gets the correct sign group):
+  set filetype=markdown
+  runtime ftplugin/markdown.vim
+  for lvl in range(1, 6)
+    let signs = sign_getplaced(bufnr('%'), {'group': 'mdheader' . lvl})
+    let placed = signs[0].signs
+    AssertEqual 1, len(placed), 'Expected 1 sign for h' . lvl
+    AssertEqual lvl, placed[0].lnum, 'Expected h' . lvl . ' sign on line ' . lvl
+  endfor
+
+Given markdown (no headers):
+  Just some text.
+
+  More text here.
+
+Execute (no header signs are placed when there are no headers):
+  set filetype=markdown
+  runtime ftplugin/markdown.vim
+  let total = 0
+  for lvl in range(1, 6)
+    let signs = sign_getplaced(bufnr('%'), {'group': 'mdheader' . lvl})
+    let total += len(signs[0].signs)
+  endfor
+  AssertEqual 0, total
+
+Given markdown (multiple headers of same level):
+  # First heading
+
+  Some text.
+
+  # Second heading
+
+  More text.
+
+Execute (signs are placed on all headers of the same level):
+  set filetype=markdown
+  runtime ftplugin/markdown.vim
+  let signs = sign_getplaced(bufnr('%'), {'group': 'mdheader1'})
+  let placed = signs[0].signs
+  let signed_lines = sort(map(copy(placed), 'v:val.lnum'), 'n')
+  AssertEqual [1, 5], signed_lines
+
+Given markdown (mixed headers and code blocks):
+  # Heading
+
+  ```python
+  x = 1
+  ```
+
+  ## Another heading
+
+Execute (both header and code block signs are placed correctly):
+  set filetype=markdown
+  runtime ftplugin/markdown.vim
+  " Check header signs
+  let h1_signs = sign_getplaced(bufnr('%'), {'group': 'mdheader1'})
+  AssertEqual 1, len(h1_signs[0].signs)
+  AssertEqual 1, h1_signs[0].signs[0].lnum
+
+  let h2_signs = sign_getplaced(bufnr('%'), {'group': 'mdheader2'})
+  AssertEqual 1, len(h2_signs[0].signs)
+  AssertEqual 7, h2_signs[0].signs[0].lnum
+
+  " Check code block signs
+  let cb_signs = sign_getplaced(bufnr('%'), {'group': 'codeblock'})
+  let cb_lines = sort(map(copy(cb_signs[0].signs), 'v:val.lnum'), 'n')
+  AssertEqual [3, 4, 5], cb_lines
+
+" ============================================================================
+" Markdown-only scoping
+" ============================================================================
+
+Given (plain text file - not markdown):
+  # This looks like a heading but is not markdown
+
+  ```
+  This looks like code but is not markdown
+  ```
+
+Execute (no signs are placed in non-markdown buffers):
+  " Set filetype to something other than markdown
+  set filetype=text
+  " Ensure no codeblock signs
+  let cb_signs = sign_getplaced(bufnr('%'), {'group': 'codeblock'})
+  AssertEqual [], cb_signs[0].signs
+  " Ensure no header signs
+  let total = 0
+  for lvl in range(1, 6)
+    let signs = sign_getplaced(bufnr('%'), {'group': 'mdheader' . lvl})
+    let total += len(signs[0].signs)
+  endfor
+  AssertEqual 0, total
+
+" ============================================================================
+" Highlight group definitions
+" ============================================================================
+
+Execute (CodeBlockBg highlight group exists after loading):
+  new
+  set filetype=markdown
+  runtime ftplugin/markdown.vim
+  Assert hlexists('CodeBlockBg'), 'CodeBlockBg highlight group should exist'
+  bwipeout!
+
+Execute (MarkdownHeaderBg highlight group exists after loading):
+  new
+  set filetype=markdown
+  runtime ftplugin/markdown.vim
+  Assert hlexists('MarkdownHeaderBg'), 'MarkdownHeaderBg highlight group should exist'
+  bwipeout!
+
+Execute (header level highlight groups MarkdownH1Bg-H6Bg are created):
+  new
+  set filetype=markdown
+  runtime ftplugin/markdown.vim
+  for lvl in range(1, 6)
+    Assert hlexists('MarkdownH' . lvl . 'Bg'), 'MarkdownH' . lvl . 'Bg should exist'
+  endfor
+  bwipeout!
+
+" ============================================================================
+" User-customizable highlight groups
+" ============================================================================
+
+Execute (user-defined CodeBlockBg is not overridden by plugin):
+  " Define the highlight before loading the plugin
+  highlight CodeBlockBg ctermbg=17 guibg=#0a0a1a
+  let g:mkd_codeblock_bg_defined = 0
+  new
+  set filetype=markdown
+  runtime ftplugin/markdown.vim
+  " The user's guibg should be preserved
+  let bg = synIDattr(synIDtrans(hlID('CodeBlockBg')), 'bg#')
+  AssertEqual '#0a0a1a', bg
+  " Clean up
+  highlight CodeBlockBg ctermbg=234 guibg=#0d0d0d
+  let g:mkd_codeblock_bg_defined = 0
+  bwipeout!
+
+Execute (user-defined MarkdownHeaderBg is not overridden by plugin):
+  highlight MarkdownHeaderBg ctermbg=17 guibg=#121230
+  let g:mkd_header_bg_defined = 0
+  new
+  set filetype=markdown
+  runtime ftplugin/markdown.vim
+  let bg = synIDattr(synIDtrans(hlID('MarkdownHeaderBg')), 'bg#')
+  AssertEqual '#121230', bg
+  " Clean up
+  highlight MarkdownHeaderBg ctermbg=94 guibg=#18100a
+  let g:mkd_header_bg_defined = 0
+  bwipeout!
+
+" ============================================================================
+" Sign definitions
+" ============================================================================
+
+Execute (codeblock sign is defined with correct linehl):
+  new
+  set filetype=markdown
+  runtime ftplugin/markdown.vim
+  let defined = sign_getdefined('codeblock')
+  Assert !empty(defined), 'codeblock sign should be defined'
+  AssertEqual 'CodeBlockBg', defined[0].linehl
+  bwipeout!
+
+Execute (mdheader signs are defined with correct linehl):
+  new
+  set filetype=markdown
+  runtime ftplugin/markdown.vim
+  for lvl in range(1, 6)
+    let defined = sign_getdefined('mdheader' . lvl)
+    Assert !empty(defined), 'mdheader' . lvl . ' sign should be defined'
+    AssertEqual 'MarkdownH' . lvl . 'Bg', defined[0].linehl
+  endfor
+  bwipeout!

@@ -26,6 +26,8 @@ for a long-standing syntax highlighting bug (see [Motivation](#motivation)).
 | Header level commands | `:HeaderIncrease`, `:HeaderDecrease`, `:SetexToAtx` |
 | Table formatting | `:TableFormat` to align markdown tables (requires [Tabularize](https://github.com/godlygeek/tabular)) |
 | Reliable highlighting | Correct syntax everywhere in the file — no gray text when jumping to the end |
+| Code block background | Full-line background color on fenced code blocks using signs |
+| Header background | Full-line background color on headings, dimming with each level |
 | Configurable sync | Tunable lookback (`g:vim_markdown_sync_minlines`) for performance on very large files |
 | Drop-in compatible | Same config variables (`g:vim_markdown_*`), highlight groups, and `<Plug>` mappings as vim-markdown |
 
@@ -336,6 +338,43 @@ let g:vim_markdown_toc_autofit = 1
 These commands accept a range. For example, to increase header levels only in
 the visually selected region: select the lines, then type `:HeaderIncrease`.
 
+### Code block background
+
+Fenced code blocks (`` ``` `` and `~~~`) get a subtle full-line background
+color, making them visually distinct from surrounding text. This uses Vim's
+sign column with `linehl`, so it works alongside syntax highlighting and at
+any `conceallevel`.
+
+The default background is a dark gray (`guibg=#0d0d0d`, `ctermbg=234`). To
+customize it, define the `CodeBlockBg` highlight group in your `.vimrc`
+before the plugin loads:
+
+```vim
+highlight CodeBlockBg ctermbg=17 guibg=#0a0a1a    " navy blue
+```
+
+A full color palette is included as comments in `ftplugin/markdown.vim` for
+easy switching.
+
+### Header background
+
+Heading lines (`#` through `######`) get a full-line background color that
+dims with each level — H1 is the strongest, H6 the most subtle. This uses
+the same sign-based approach as code block backgrounds.
+
+The default base color is a warm brown (`guibg=#18100a`, `ctermbg=94`). The
+plugin generates six dimming levels automatically:
+H1=100%, H2=82%, H3=67%, H4=55%, H5=45%, H6=37% of the base color.
+
+To customize the base color, define `MarkdownHeaderBg` in your `.vimrc`:
+
+```vim
+highlight MarkdownHeaderBg ctermbg=17 guibg=#121230    " navy blue
+```
+
+A full color palette (blues, purples, teals, indigos, grays, olives, reds,
+greens, browns) is included as comments in `ftplugin/markdown.vim`.
+
 ### Table formatting
 
 The `:TableFormat` command formats the markdown table under the cursor. It
@@ -425,6 +464,9 @@ You can customize colors by setting highlight rules in your `.vimrc` (after
 | `mkdFootnote` | `Comment` | Footnote definitions |
 | `mkdMath` | `Statement` | LaTeX math delimiters |
 | `mkdStrike` | `htmlStrike` | `~~strikethrough~~` text |
+| `CodeBlockBg` | (standalone) | Full-line background on fenced code blocks |
+| `MarkdownHeaderBg` | (standalone) | Base color for heading backgrounds |
+| `MarkdownH1Bg` ... `MarkdownH6Bg` | (generated) | Per-level heading backgrounds (dimmed from base) |
 
 ## Plugin structure
 
