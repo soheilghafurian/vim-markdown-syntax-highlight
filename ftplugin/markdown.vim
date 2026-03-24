@@ -762,3 +762,189 @@ command! -buffer Tocv call s:Toc('vertical')
 command! -buffer Toct call s:Toc('tab')
 command! -buffer -nargs=? InsertToc call s:InsertToc('bullets', <args>)
 command! -buffer -nargs=? InsertNToc call s:InsertToc('numbers', <args>)
+
+" ============================================================================
+" Code block background highlighting
+" ============================================================================
+" Uses signs with linehl so it works with syntax highlighting and any conceallevel.
+" Customize the background color by setting the CodeBlockBg highlight group
+" in your vimrc before this plugin loads, e.g.:
+"   highlight CodeBlockBg ctermbg=234 guibg=#141414
+"
+" Color palette (uncomment one to use):
+"highlight CodeBlockBg ctermbg=234 guibg=#141414   " neutral gray
+"highlight CodeBlockBg ctermbg=58 guibg=#12120a    " olive
+"highlight CodeBlockBg ctermbg=58 guibg=#16160c    " olive, less subtle
+"highlight CodeBlockBg ctermbg=17 guibg=#0a0a1a    " navy blue
+"highlight CodeBlockBg ctermbg=17 guibg=#0e0e24    " navy blue, less subtle
+"highlight CodeBlockBg ctermbg=52 guibg=#1a0a0a    " dark red
+"highlight CodeBlockBg ctermbg=52 guibg=#1e0e0e    " dark red, less subtle
+"highlight CodeBlockBg ctermbg=22 guibg=#0a1a0a    " dark green
+"highlight CodeBlockBg ctermbg=22 guibg=#0e1e0e    " dark green, less subtle
+"highlight CodeBlockBg ctermbg=23 guibg=#0a1414    " teal
+"highlight CodeBlockBg ctermbg=23 guibg=#0e1a1a    " teal, less subtle
+"highlight CodeBlockBg ctermbg=53 guibg=#140a14    " purple
+"highlight CodeBlockBg ctermbg=53 guibg=#1a0e1a    " purple, less subtle
+"highlight CodeBlockBg ctermbg=235 guibg=#1a1a1a   " neutral gray, less subtle
+"highlight CodeBlockBg ctermbg=94 guibg=#18100a    " warm brown
+"highlight CodeBlockBg ctermbg=94 guibg=#1e140e    " warm brown, less subtle
+
+if !exists('g:mkd_codeblock_bg_defined')
+    let g:mkd_codeblock_bg_defined = 1
+    if synIDattr(synIDtrans(hlID('CodeBlockBg')), 'bg') ==# ''
+        highlight CodeBlockBg ctermbg=234 guibg=#0d0d0d
+    endif
+    sign define codeblock linehl=CodeBlockBg
+endif
+
+function! s:HighlightCodeBlocks()
+    if &filetype !=# 'markdown' | return | endif
+    call sign_unplace('codeblock', {'buffer': bufnr('%')})
+    let l:in_block = 0
+    for l:lnum in range(1, line('$'))
+        let l:line = getline(l:lnum)
+        if l:line =~# '^\s*```\|^\s*\~\~\~'
+            call sign_place(0, 'codeblock', 'codeblock', bufnr('%'), {'lnum': l:lnum})
+            let l:in_block = !l:in_block
+        elseif l:in_block
+            call sign_place(0, 'codeblock', 'codeblock', bufnr('%'), {'lnum': l:lnum})
+        endif
+    endfor
+endfunction
+
+augroup MkdCodeBlockBg
+    autocmd! * <buffer>
+    autocmd BufEnter,BufWritePost <buffer> call s:HighlightCodeBlocks()
+    autocmd TextChanged <buffer> call s:HighlightCodeBlocks()
+augroup END
+
+call s:HighlightCodeBlocks()
+
+" ============================================================================
+" Header background highlighting
+" ============================================================================
+" Uses signs with linehl so it works with syntax highlighting and any conceallevel.
+" Customize the base header background color by setting the MarkdownHeaderBg
+" highlight group in your vimrc before this plugin loads.
+" H1 gets the full color; each subsequent level dims toward black.
+"
+" Color palette (uncomment one to use):
+"
+" -- Blues (complementary to yellow) --
+"highlight MarkdownHeaderBg ctermbg=17 guibg=#0a0a1a   " navy blue, subtle
+"highlight MarkdownHeaderBg ctermbg=17 guibg=#0e0e24   " navy blue
+"highlight MarkdownHeaderBg ctermbg=17 guibg=#121230   " navy blue, bold
+"highlight MarkdownHeaderBg ctermbg=18 guibg=#0a0e20   " royal blue, subtle
+"highlight MarkdownHeaderBg ctermbg=18 guibg=#0e1230   " royal blue
+"highlight MarkdownHeaderBg ctermbg=18 guibg=#141840   " royal blue, bold
+"highlight MarkdownHeaderBg ctermbg=24 guibg=#0a1420   " steel blue, subtle
+"highlight MarkdownHeaderBg ctermbg=24 guibg=#0e1a2a   " steel blue
+"highlight MarkdownHeaderBg ctermbg=24 guibg=#142036   " steel blue, bold
+"
+" -- Purples / Violets --
+"highlight MarkdownHeaderBg ctermbg=53 guibg=#120a18   " purple, subtle
+"highlight MarkdownHeaderBg ctermbg=53 guibg=#180e22   " purple
+"highlight MarkdownHeaderBg ctermbg=53 guibg=#1e142e   " purple, bold
+"highlight MarkdownHeaderBg ctermbg=54 guibg=#160a20   " magenta-purple, subtle
+"highlight MarkdownHeaderBg ctermbg=54 guibg=#1c0e2a   " magenta-purple
+"highlight MarkdownHeaderBg ctermbg=54 guibg=#221436   " magenta-purple, bold
+"highlight MarkdownHeaderBg ctermbg=60 guibg=#14102a   " slate violet, subtle
+"highlight MarkdownHeaderBg ctermbg=60 guibg=#1a1436   " slate violet
+"highlight MarkdownHeaderBg ctermbg=60 guibg=#201a42   " slate violet, bold
+"
+" -- Teals / Cyans (triadic to yellow) --
+"highlight MarkdownHeaderBg ctermbg=23 guibg=#0a1414   " teal, subtle
+"highlight MarkdownHeaderBg ctermbg=23 guibg=#0e1a1a   " teal
+"highlight MarkdownHeaderBg ctermbg=23 guibg=#142222   " teal, bold
+"highlight MarkdownHeaderBg ctermbg=30 guibg=#0a1618   " cyan-teal, subtle
+"highlight MarkdownHeaderBg ctermbg=30 guibg=#0e1c20   " cyan-teal
+"highlight MarkdownHeaderBg ctermbg=30 guibg=#14242a   " cyan-teal, bold
+"
+" -- Blue-greens --
+"highlight MarkdownHeaderBg ctermbg=29 guibg=#0a1816   " blue-green, subtle
+"highlight MarkdownHeaderBg ctermbg=29 guibg=#0e1e1c   " blue-green
+"highlight MarkdownHeaderBg ctermbg=29 guibg=#142624   " blue-green, bold
+"
+" -- Indigos --
+"highlight MarkdownHeaderBg ctermbg=19 guibg=#0e0a20   " indigo, subtle
+"highlight MarkdownHeaderBg ctermbg=19 guibg=#140e2c   " indigo
+"highlight MarkdownHeaderBg ctermbg=19 guibg=#1a1438   " indigo, bold
+"
+" -- Cool grays --
+"highlight MarkdownHeaderBg ctermbg=234 guibg=#101014   " cool gray, subtle
+"highlight MarkdownHeaderBg ctermbg=234 guibg=#16161c   " cool gray
+"highlight MarkdownHeaderBg ctermbg=235 guibg=#1c1c24   " cool gray, bold
+"
+" -- Neutral grays --
+"highlight MarkdownHeaderBg ctermbg=234 guibg=#0d0d0d   " neutral gray, subtle
+"highlight MarkdownHeaderBg ctermbg=234 guibg=#141414   " neutral gray
+"highlight MarkdownHeaderBg ctermbg=235 guibg=#1a1a1a   " neutral gray, bold
+"
+" -- Olives --
+"highlight MarkdownHeaderBg ctermbg=58 guibg=#12120a    " olive, subtle
+"highlight MarkdownHeaderBg ctermbg=58 guibg=#16160c    " olive
+"highlight MarkdownHeaderBg ctermbg=58 guibg=#1c1c10    " olive, bold
+"
+" -- Dark reds --
+"highlight MarkdownHeaderBg ctermbg=52 guibg=#1a0a0a    " dark red, subtle
+"highlight MarkdownHeaderBg ctermbg=52 guibg=#1e0e0e    " dark red
+"highlight MarkdownHeaderBg ctermbg=52 guibg=#241414    " dark red, bold
+"
+" -- Dark greens --
+"highlight MarkdownHeaderBg ctermbg=22 guibg=#0a1a0a    " dark green, subtle
+"highlight MarkdownHeaderBg ctermbg=22 guibg=#0e1e0e    " dark green
+"highlight MarkdownHeaderBg ctermbg=22 guibg=#142414    " dark green, bold
+"
+" -- Warm browns --
+"highlight MarkdownHeaderBg ctermbg=94 guibg=#1e140e    " warm brown
+"highlight MarkdownHeaderBg ctermbg=94 guibg=#241a14    " warm brown, bold
+
+if !exists('g:mkd_header_bg_defined')
+    let g:mkd_header_bg_defined = 1
+    if synIDattr(synIDtrans(hlID('MarkdownHeaderBg')), 'bg') ==# ''
+        highlight MarkdownHeaderBg ctermbg=94 guibg=#18100a
+    endif
+endif
+
+function! s:HexToRGB(hex)
+    let l:h = substitute(a:hex, '^#', '', '')
+    return [str2nr(l:h[0:1], 16), str2nr(l:h[2:3], 16), str2nr(l:h[4:5], 16)]
+endfunction
+
+function! s:SetupHeaderLevels()
+    let l:bg = synIDattr(synIDtrans(hlID('MarkdownHeaderBg')), 'bg#')
+    if l:bg ==# '' | return | endif
+    let [l:r, l:g, l:b] = s:HexToRGB(l:bg)
+    " H1=100%, H2=82%, H3=67%, H4=55%, H5=45%, H6=37%
+    let l:factors = [1.0, 0.82, 0.67, 0.55, 0.45, 0.37]
+    for l:i in range(6)
+        let l:f = l:factors[l:i]
+        let l:color = printf('#%02x%02x%02x', float2nr(l:r * l:f), float2nr(l:g * l:f), float2nr(l:b * l:f))
+        execute 'highlight MarkdownH' . (l:i+1) . 'Bg guibg=' . l:color
+        execute 'sign define mdheader' . (l:i+1) . ' linehl=MarkdownH' . (l:i+1) . 'Bg'
+    endfor
+endfunction
+
+function! s:HighlightHeaders()
+    if &filetype !=# 'markdown' | return | endif
+    for l:i in range(1, 6)
+        call sign_unplace('mdheader' . l:i, {'buffer': bufnr('%')})
+    endfor
+    for l:lnum in range(1, line('$'))
+        let l:line = getline(l:lnum)
+        let l:match = matchstr(l:line, '^#\+')
+        if l:match !=# ''
+            let l:lvl = min([len(l:match), 6])
+            call sign_place(0, 'mdheader' . l:lvl, 'mdheader' . l:lvl, bufnr('%'), {'lnum': l:lnum})
+        endif
+    endfor
+endfunction
+
+augroup MkdHeaderBg
+    autocmd! * <buffer>
+    autocmd BufEnter,BufWritePost <buffer> call s:SetupHeaderLevels() | call s:HighlightHeaders()
+    autocmd TextChanged <buffer> call s:HighlightHeaders()
+augroup END
+
+call s:SetupHeaderLevels()
+call s:HighlightHeaders()
