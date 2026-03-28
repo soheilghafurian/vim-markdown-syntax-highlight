@@ -26,7 +26,8 @@ else
         \ 'c++': 'cpp',
         \ 'viml': 'vim',
         \ 'bash': 'sh',
-        \ 'ini': 'dosini'
+        \ 'ini': 'dosini',
+        \ 'hack': 'php'
     \ }
 endif
 

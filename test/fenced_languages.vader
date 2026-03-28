@@ -1,0 +1,167 @@
+" test/fenced_languages.vader
+" Tests for fenced code block language syntax highlighting (PHP and Hack).
+"
+" Run with:
+"   vim -u NONE -N +'set rtp+=.' +'runtime plugin/vader.vim' +'Vader! test/fenced_languages.vader'
+" or from within vim:
+"   :Vader test/fenced_languages.vader
+
+" ============================================================================
+" PHP fenced code blocks
+" ============================================================================
+
+Given markdown (php fenced code block):
+  # Example
+
+  ```php
+  <?php
+  function hello() {
+      echo "world";
+  }
+  ```
+
+  Some text.
+
+Execute (php syntax region is created for php fenced block):
+  set filetype=markdown
+  runtime syntax/markdown.vim
+  runtime ftplugin/markdown.vim
+  " Force syntax refresh
+  call s:MarkdownRefreshSyntax(1)
+  " Check that the mkdSnippetPHP syntax group exists
+  let output = execute('syntax list mkdSnippetPHP')
+  Assert output =~# 'mkdSnippetPHP', 'mkdSnippetPHP syntax region should exist'
+
+Execute (php code inside fenced block has php syntax highlighting):
+  set filetype=markdown
+  runtime syntax/markdown.vim
+  runtime ftplugin/markdown.vim
+  call s:MarkdownRefreshSyntax(1)
+  " Line 5 col 1 is 'function' keyword inside the php block
+  let synName = synIDattr(synID(5, 1, 1), 'name')
+  " Should be a PHP syntax group, not plain mkdCode
+  Assert synName !~# '^mkdCode$', 'Code inside ```php should not be plain mkdCode, got: ' . synName
+
+Execute (php fenced block delimiters use mkdCodeStart and mkdCodeEnd):
+  set filetype=markdown
+  runtime syntax/markdown.vim
+  runtime ftplugin/markdown.vim
+  call s:MarkdownRefreshSyntax(1)
+  " Line 3 is the opening ```php delimiter
+  let startSyn = synIDattr(synID(3, 1, 1), 'name')
+  AssertEqual 'mkdCodeStart', startSyn
+  " Line 8 is the closing ``` delimiter
+  let endSyn = synIDattr(synID(8, 1, 1), 'name')
+  AssertEqual 'mkdCodeEnd', endSyn
+
+" ============================================================================
+" Hack fenced code blocks (aliased to PHP syntax)
+" ============================================================================
+
+Given markdown (hack fenced code block):
+  # Example
+
+  ```hack
+  function hello(): void {
+      echo "world";
+  }
+  ```
+
+  Some text.
+
+Execute (hack syntax region is created using php syntax):
+  set filetype=markdown
+  runtime syntax/markdown.vim
+  runtime ftplugin/markdown.vim
+  call s:MarkdownRefreshSyntax(1)
+  " The region name is based on the resolved filetype (php), uppercased
+  let output = execute('syntax list mkdSnippetPHP')
+  Assert output =~# 'mkdSnippetPHP', 'mkdSnippetPHP syntax region should exist for hack blocks'
+
+Execute (hack code inside fenced block has php syntax highlighting):
+  set filetype=markdown
+  runtime syntax/markdown.vim
+  runtime ftplugin/markdown.vim
+  call s:MarkdownRefreshSyntax(1)
+  " Line 4 col 1 is 'function' keyword inside the hack block
+  let synName = synIDattr(synID(4, 1, 1), 'name')
+  Assert synName !~# '^mkdCode$', 'Code inside ```hack should not be plain mkdCode, got: ' . synName
+
+Execute (hack fenced block delimiters use mkdCodeStart and mkdCodeEnd):
+  set filetype=markdown
+  runtime syntax/markdown.vim
+  runtime ftplugin/markdown.vim
+  call s:MarkdownRefreshSyntax(1)
+  " Line 3 is the opening ```hack delimiter
+  let startSyn = synIDattr(synID(3, 1, 1), 'name')
+  AssertEqual 'mkdCodeStart', startSyn
+  " Line 7 is the closing ``` delimiter
+  let endSyn = synIDattr(synID(7, 1, 1), 'name')
+  AssertEqual 'mkdCodeEnd', endSyn
+
+" ============================================================================
+" PHP with tilde fences
+" ============================================================================
+
+Given markdown (php with tilde fence):
+  ~~~php
+  echo "hello";
+  ~~~
+
+Execute (php syntax works with tilde-fenced blocks):
+  set filetype=markdown
+  runtime syntax/markdown.vim
+  runtime ftplugin/markdown.vim
+  call s:MarkdownRefreshSyntax(1)
+  " Line 1 is the opening ~~~php delimiter
+  let startSyn = synIDattr(synID(1, 1, 1), 'name')
+  AssertEqual 'mkdCodeStart', startSyn
+  " Line 2 should have php highlighting, not plain mkdCode
+  let synName = synIDattr(synID(2, 1, 1), 'name')
+  Assert synName !~# '^mkdCode$', 'Code inside ~~~php should not be plain mkdCode, got: ' . synName
+
+" ============================================================================
+" Hack with tilde fences
+" ============================================================================
+
+Given markdown (hack with tilde fence):
+  ~~~hack
+  echo "hello";
+  ~~~
+
+Execute (hack syntax works with tilde-fenced blocks):
+  set filetype=markdown
+  runtime syntax/markdown.vim
+  runtime ftplugin/markdown.vim
+  call s:MarkdownRefreshSyntax(1)
+  " Line 1 is the opening ~~~hack delimiter
+  let startSyn = synIDattr(synID(1, 1, 1), 'name')
+  AssertEqual 'mkdCodeStart', startSyn
+  " Line 2 should have php highlighting, not plain mkdCode
+  let synName = synIDattr(synID(2, 1, 1), 'name')
+  Assert synName !~# '^mkdCode$', 'Code inside ~~~hack should not be plain mkdCode, got: ' . synName
+
+" ============================================================================
+" Mixed PHP and Hack in the same buffer
+" ============================================================================
+
+Given markdown (both php and hack fenced blocks):
+  ```php
+  $x = 1;
+  ```
+
+  ```hack
+  $y = 2;
+  ```
+
+Execute (both php and hack blocks are highlighted in the same buffer):
+  set filetype=markdown
+  runtime syntax/markdown.vim
+  runtime ftplugin/markdown.vim
+  call s:MarkdownRefreshSyntax(1)
+  " Both should produce syntax regions; php block code on line 2
+  let phpSyn = synIDattr(synID(2, 1, 1), 'name')
+  Assert phpSyn !~# '^mkdCode$', 'PHP block code should not be plain mkdCode, got: ' . phpSyn
+  " hack block code on line 6
+  let hackSyn = synIDattr(synID(6, 1, 1), 'name')
+  Assert hackSyn !~# '^mkdCode$', 'Hack block code should not be plain mkdCode, got: ' . hackSyn

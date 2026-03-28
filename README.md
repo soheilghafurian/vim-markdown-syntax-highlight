@@ -158,6 +158,7 @@ By default, the plugin recognizes a small set of language aliases:
 | `viml`      | `vim`                |
 | `bash`      | `sh`                 |
 | `ini`       | `dosini`             |
+| `hack`      | `php`                |
 
 To customize this (or to pre-register languages for faster loading), set
 `g:vim_markdown_fenced_languages` in your `.vimrc`:
