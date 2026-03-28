@@ -14,21 +14,19 @@ scriptencoding utf-8
 " the syntax file for each language found. This gives you highlighted
 " code inside fenced blocks.
 
+let s:filetype_dict = {
+    \ 'c++': 'cpp',
+    \ 'viml': 'vim',
+    \ 'bash': 'sh',
+    \ 'ini': 'dosini',
+    \ 'hack': 'php'
+\ }
 if exists('g:vim_markdown_fenced_languages')
-    let s:filetype_dict = {}
     for s:filetype in g:vim_markdown_fenced_languages
         let key = matchstr(s:filetype, '[^=]*')
         let val = matchstr(s:filetype, '[^=]*$')
         let s:filetype_dict[key] = val
     endfor
-else
-    let s:filetype_dict = {
-        \ 'c++': 'cpp',
-        \ 'viml': 'vim',
-        \ 'bash': 'sh',
-        \ 'ini': 'dosini',
-        \ 'hack': 'php'
-    \ }
 endif
 
 function! s:SyntaxInclude(filetype)
