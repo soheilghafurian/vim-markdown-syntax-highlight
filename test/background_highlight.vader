@@ -205,6 +205,32 @@ Execute (both header and code block signs are placed correctly):
   let cb_lines = sort(map(copy(cb_signs[0].signs), 'v:val.lnum'), 'n')
   AssertEqual [3, 4, 5], cb_lines
 
+Given markdown (hash comment inside python code block):
+  # Real heading
+
+  ```python
+  x = 1
+  # this is a python comment, not a header
+  y = 2
+  ```
+
+  ## Another real heading
+
+Execute (no header sign is placed on # comments inside code blocks):
+  set filetype=markdown
+  runtime ftplugin/markdown.vim
+  " Real headers on lines 1 and 9 still get signs
+  AssertEqual 1, sign_getplaced(bufnr('%'), {'group':'mdheader1'})[0].signs[0].lnum
+  AssertEqual 9, sign_getplaced(bufnr('%'), {'group':'mdheader2'})[0].signs[0].lnum
+  " The '#' comment on line 5 (inside the block) must NOT get any mdheader sign
+  let bad = 0
+  for lvl in range(1, 6)
+    for s in sign_getplaced(bufnr('%'), {'group':'mdheader'.lvl})[0].signs
+      if s.lnum == 5 | let bad += 1 | endif
+    endfor
+  endfor
+  AssertEqual 0, bad, 'No header-bg sign should land on a # comment inside a code block'
+
 " ============================================================================
 " Markdown-only scoping
 " ============================================================================

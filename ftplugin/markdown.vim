@@ -934,8 +934,17 @@ function! s:HighlightHeaders()
     for l:i in range(1, 6)
         call sign_unplace('mdheader' . l:i, {'buffer': bufnr('%')})
     endfor
+    " Track fenced code blocks so '#' comments inside them (e.g. python
+    " comments) aren't mistaken for headers. Uses the same fence detection as
+    " s:HighlightCodeBlocks().
+    let l:in_block = 0
     for l:lnum in range(1, line('$'))
         let l:line = getline(l:lnum)
+        if l:line =~# '^\s*```\|^\s*\~\~\~'
+            let l:in_block = !l:in_block
+            continue
+        endif
+        if l:in_block | continue | endif
         let l:match = matchstr(l:line, '^#\+')
         if l:match !=# ''
             let l:lvl = min([len(l:match), 6])
