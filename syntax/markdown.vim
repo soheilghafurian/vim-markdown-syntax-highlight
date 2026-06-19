@@ -117,7 +117,9 @@ syntax match  htmlH2       /^.\+\n-\+$/ contains=@mkdHeadingContent,@Spell
 
 " Block elements
 syntax match  mkdLineBreak    /  \+$/
-syntax region mkdBlockquote   start=/^\s*>/                   end=/$/ contains=mkdLink,mkdInlineURL,mkdLineBreak,@Spell
+syntax region mkdBlockquote   matchgroup=mkdBlockquoteDelimiter start=/^\s*>\+/ end=/$/ contains=mkdBlockquoteHeading,htmlItalic,htmlBold,htmlBoldItalic,mkdCode,mkdStrike,mkdFootnotes,mkdLink,mkdInlineURL,mkdLineBreak,@Spell keepend
+" A `# ...` line inside a quote: not a real heading, just coloured differently.
+syntax match  mkdBlockquoteHeading /#\{1,6}\s.*$/ contained contains=htmlItalic,htmlBold,htmlBoldItalic,mkdCode,mkdStrike,mkdLink,mkdInlineURL,@Spell
 
 " Inline code (single backtick, double backtick)
 execute 'syntax region mkdCode matchgroup=mkdCodeDelimiter start=/\(\([^\\]\|^\)\\\)\@<!`/                     end=/`/'  . s:concealcode
@@ -201,7 +203,15 @@ MkdHiLink mkdCodeDelimiter    String
 MkdHiLink mkdCodeStart        String
 MkdHiLink mkdCodeEnd          String
 MkdHiLink mkdFootnote         Comment
-MkdHiLink mkdBlockquote       Comment
+" Blockquotes: italic for structural distinction (survives any colorscheme),
+" plus a readable colour instead of the dim grey of Comment. Override with your
+" own `highlight mkdBlockquote ...` after the colorscheme loads if you prefer.
+MkdHiLink mkdBlockquoteDelimiter Special
+if get(g:, 'vim_markdown_blockquote_default_hi', 1)
+  highlight default mkdBlockquote term=italic cterm=italic gui=italic ctermfg=108 guifg=#8ec07c
+  " `# ...` lines inside quotes: distinct colour, but no heading styling.
+  highlight default mkdBlockquoteHeading term=italic cterm=italic gui=italic ctermfg=109 guifg=#83a598
+endif
 MkdHiLink mkdListItem         Identifier
 MkdHiLink mkdListItemCheckbox Identifier
 MkdHiLink mkdRule             Identifier
