@@ -1,0 +1,437 @@
+" test/folding.vader
+" Tests for markdown folding (merged from vim-markdown-fold).
+"
+" Run with:
+"   vim -u NONE -N +'set rtp+=.' +'set rtp+=/path/to/vader.vim' +'runtime plugin/vader.vim' +'Vader! test/folding.vader'
+"
+" Most tests set foldexpr directly so they exercise autoload/markdownfold.vim
+" without needing the ftplugin; the integration tests at the end load the
+" ftplugin via :filetype to check auto-setup, the disable flag, and syntax off.
+
+" ---------------------------------------------------------------------------
+" Basic header levels
+" ---------------------------------------------------------------------------
+
+Execute (h1 starts a level-1 fold):
+  new
+  call setline(1, ['# Heading 1', 'Some text'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 1, foldlevel(1), 'h1 line should be fold level 1'
+  AssertEqual 1, foldlevel(2), 'text under h1 should be fold level 1'
+  bdelete!
+
+Execute (h2 starts a level-2 fold):
+  new
+  call setline(1, ['## Heading 2', 'Some text'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 2, foldlevel(1), 'h2 line should be fold level 2'
+  AssertEqual 2, foldlevel(2), 'text under h2 should be fold level 2'
+  bdelete!
+
+Execute (h3 starts a level-3 fold):
+  new
+  call setline(1, ['### Heading 3', 'Some text'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 3, foldlevel(1), 'h3 line should be fold level 3'
+  AssertEqual 3, foldlevel(2), 'text under h3 should be fold level 3'
+  bdelete!
+
+" ---------------------------------------------------------------------------
+" Nested headers
+" ---------------------------------------------------------------------------
+
+Execute (nested headers create nested folds):
+  new
+  call setline(1, ['# Top', 'intro', '## Sub', 'detail', '### SubSub', 'more detail'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 1, foldlevel(1), 'h1 should be level 1'
+  AssertEqual 1, foldlevel(2), 'text under h1 should be level 1'
+  AssertEqual 2, foldlevel(3), 'h2 should be level 2'
+  AssertEqual 2, foldlevel(4), 'text under h2 should be level 2'
+  AssertEqual 3, foldlevel(5), 'h3 should be level 3'
+  AssertEqual 3, foldlevel(6), 'text under h3 should be level 3'
+  bdelete!
+
+" ---------------------------------------------------------------------------
+" Sibling headers
+" ---------------------------------------------------------------------------
+
+Execute (sibling headers at same level create separate folds):
+  new
+  call setline(1, ['## First', 'aaa', '## Second', 'bbb'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 2, foldlevel(1), 'first h2 should be level 2'
+  AssertEqual 2, foldlevel(2), 'text under first h2 should be level 2'
+  AssertEqual 2, foldlevel(3), 'second h2 should be level 2'
+  AssertEqual 2, foldlevel(4), 'text under second h2 should be level 2'
+  bdelete!
+
+" ---------------------------------------------------------------------------
+" Text before any header
+" ---------------------------------------------------------------------------
+
+Execute (text before any header has fold level 0):
+  new
+  call setline(1, ['Some preamble', 'Another line', '# First heading', 'body'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 0, foldlevel(1), 'preamble should be level 0'
+  AssertEqual 0, foldlevel(2), 'preamble line 2 should be level 0'
+  AssertEqual 1, foldlevel(3), 'h1 should be level 1'
+  AssertEqual 1, foldlevel(4), 'body should be level 1'
+  bdelete!
+
+" ---------------------------------------------------------------------------
+" Empty lines preserve fold level
+" ---------------------------------------------------------------------------
+
+Execute (empty lines keep the surrounding fold level):
+  new
+  call setline(1, ['## Section', 'text', '', 'more text'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 2, foldlevel(2), 'text should be level 2'
+  AssertEqual 2, foldlevel(3), 'blank line should be level 2'
+  AssertEqual 2, foldlevel(4), 'text after blank should be level 2'
+  bdelete!
+
+" ---------------------------------------------------------------------------
+" Deep headers (h4-h6)
+" ---------------------------------------------------------------------------
+
+Execute (h4 through h6 produce correct levels):
+  new
+  call setline(1, ['#### H4', 'text4', '##### H5', 'text5', '###### H6', 'text6'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 4, foldlevel(1), 'h4 should be level 4'
+  AssertEqual 4, foldlevel(2), 'text under h4 should be level 4'
+  AssertEqual 5, foldlevel(3), 'h5 should be level 5'
+  AssertEqual 5, foldlevel(4), 'text under h5 should be level 5'
+  AssertEqual 6, foldlevel(5), 'h6 should be level 6'
+  AssertEqual 6, foldlevel(6), 'text under h6 should be level 6'
+  bdelete!
+
+" ---------------------------------------------------------------------------
+" Non-header lines starting with #
+" ---------------------------------------------------------------------------
+
+Execute (indented # is not a header):
+  new
+  call setline(1, ['## Real header', 'body', ' # indented hash'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 2, foldlevel(3), 'indented # should not start a new fold'
+  bdelete!
+
+" ---------------------------------------------------------------------------
+" Ascending back to higher-level header
+" ---------------------------------------------------------------------------
+
+Execute (going from h3 back to h1 closes inner folds):
+  new
+  call setline(1, ['# Part 1', '### Deep', 'detail', '# Part 2', 'new section'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 1, foldlevel(1), 'first h1 should be level 1'
+  AssertEqual 3, foldlevel(2), 'h3 should be level 3'
+  AssertEqual 3, foldlevel(3), 'text under h3 should be level 3'
+  AssertEqual 1, foldlevel(4), 'second h1 should be level 1'
+  AssertEqual 1, foldlevel(5), 'text under second h1 should be level 1'
+  bdelete!
+
+" ---------------------------------------------------------------------------
+" Single line document
+" ---------------------------------------------------------------------------
+
+Execute (single header line with no body):
+  new
+  call setline(1, ['# Only header'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 1, foldlevel(1), 'lone h1 should be level 1'
+  bdelete!
+
+" ---------------------------------------------------------------------------
+" Empty document
+" ---------------------------------------------------------------------------
+
+Execute (empty document has no folds):
+  new
+  call setline(1, [''])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 0, foldlevel(1), 'empty line should be level 0'
+  bdelete!
+
+" ---------------------------------------------------------------------------
+" Fenced code blocks
+" ---------------------------------------------------------------------------
+
+Execute (code block creates a nested fold under a header):
+  new
+  call setline(1, ['## Section', 'text', '```python', 'code line 1', 'code line 2', '```', 'after'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 2, foldlevel(1), 'header should be level 2'
+  AssertEqual 2, foldlevel(2), 'text should be level 2'
+  AssertEqual 3, foldlevel(3), 'opening fence should be level 3'
+  AssertEqual 3, foldlevel(4), 'code line 1 should be level 3'
+  AssertEqual 3, foldlevel(5), 'code line 2 should be level 3'
+  AssertEqual 3, foldlevel(6), 'closing fence should be level 3'
+  AssertEqual 2, foldlevel(7), 'after should be level 2'
+  bdelete!
+
+Execute (code block before any header):
+  new
+  call setline(1, ['some text', '```', 'code', '```', 'after'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 0, foldlevel(1), 'text before code block should be level 0'
+  AssertEqual 1, foldlevel(2), 'opening fence should be level 1'
+  AssertEqual 1, foldlevel(3), 'code should be level 1'
+  AssertEqual 1, foldlevel(4), 'closing fence should be level 1'
+  AssertEqual 0, foldlevel(5), 'after should be level 0'
+  bdelete!
+
+Execute (# inside code block does not start a header fold):
+  new
+  call setline(1, ['## Config', '```', '# this is a comment', '```', 'after block'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 2, foldlevel(1), 'h2 should be level 2'
+  AssertEqual 3, foldlevel(2), 'opening fence should be level 3'
+  AssertEqual 3, foldlevel(3), '# inside code block should be level 3 (not a header)'
+  AssertEqual 3, foldlevel(4), 'closing fence should be level 3'
+  AssertEqual 2, foldlevel(5), 'after block should be level 2'
+  bdelete!
+
+Execute (tilde-fenced code block: # inside ~~~ is not a header):
+  new
+  call setline(1, ['## Config', '~~~', '# not a header', '~~~', 'after block'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 2, foldlevel(1), 'h2 should be level 2'
+  AssertEqual 3, foldlevel(2), 'opening ~~~ fence should be level 3'
+  AssertEqual 3, foldlevel(3), '# inside ~~~ block should be level 3 (not a header)'
+  AssertEqual 3, foldlevel(4), 'closing ~~~ fence should be level 3'
+  AssertEqual 2, foldlevel(5), 'after block should be level 2'
+  bdelete!
+
+Execute (two code blocks create separate folds):
+  new
+  call setline(1, ['# Top', '```', 'a', '```', 'gap', '```', 'b', '```', 'end'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 2, foldlevel(2), 'first opening fence should be level 2'
+  AssertEqual 2, foldlevel(3), 'first code should be level 2'
+  AssertEqual 2, foldlevel(4), 'first closing fence should be level 2'
+  AssertEqual 1, foldlevel(5), 'gap should be level 1'
+  AssertEqual 2, foldlevel(6), 'second opening fence should be level 2'
+  AssertEqual 2, foldlevel(7), 'second code should be level 2'
+  AssertEqual 2, foldlevel(8), 'second closing fence should be level 2'
+  AssertEqual 1, foldlevel(9), 'end should be level 1'
+  bdelete!
+
+" ---------------------------------------------------------------------------
+" Quote blocks
+" ---------------------------------------------------------------------------
+
+Execute (quote block creates a nested fold under a header):
+  new
+  call setline(1, ['## Section', 'text', '> quote 1', '> quote 2', '> quote 3', 'after'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 2, foldlevel(1), 'header should be level 2'
+  AssertEqual 2, foldlevel(2), 'text should be level 2'
+  AssertEqual 3, foldlevel(3), 'first quote line should be level 3'
+  AssertEqual 3, foldlevel(4), 'second quote line should be level 3'
+  AssertEqual 3, foldlevel(5), 'third quote line should be level 3'
+  AssertEqual 2, foldlevel(6), 'after should be level 2'
+  bdelete!
+
+Execute (quote block before any header):
+  new
+  call setline(1, ['text', '> quoted 1', '> quoted 2', 'after'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 0, foldlevel(1), 'text should be level 0'
+  AssertEqual 1, foldlevel(2), 'first quote line should be level 1'
+  AssertEqual 1, foldlevel(3), 'second quote line should be level 1'
+  AssertEqual 0, foldlevel(4), 'after should be level 0'
+  bdelete!
+
+Execute (single-line quote does not create a fold):
+  new
+  call setline(1, ['## Section', 'text', '> single quote', 'after'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 2, foldlevel(3), 'single quote should stay at header level'
+  AssertEqual 2, foldlevel(4), 'after single quote should stay at header level'
+  bdelete!
+
+Execute (two quote blocks separated by text create separate folds):
+  new
+  call setline(1, ['# Top', '> q1a', '> q1b', 'gap', '> q2a', '> q2b', 'end'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 2, foldlevel(2), 'first quote block line 1 should be level 2'
+  AssertEqual 2, foldlevel(3), 'first quote block line 2 should be level 2'
+  AssertEqual 1, foldlevel(4), 'gap should be level 1'
+  AssertEqual 2, foldlevel(5), 'second quote block line 1 should be level 2'
+  AssertEqual 2, foldlevel(6), 'second quote block line 2 should be level 2'
+  AssertEqual 1, foldlevel(7), 'end should be level 1'
+  bdelete!
+
+Execute (> inside code block is not a quote):
+  new
+  call setline(1, ['# Top', '```', '> not a quote', '```', 'after'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  AssertEqual 2, foldlevel(2), 'opening fence should be level 2'
+  AssertEqual 2, foldlevel(3), '> inside code should be level 2 (not a quote)'
+  AssertEqual 2, foldlevel(4), 'closing fence should be level 2'
+  AssertEqual 1, foldlevel(5), 'after should be level 1'
+  bdelete!
+
+" ---------------------------------------------------------------------------
+" Toggle blocks
+" ---------------------------------------------------------------------------
+
+Execute (toggle closes open block folds, then opens them again):
+  new
+  call setline(1, ['# Top', '```', 'code', '```', 'gap', '> q1', '> q2', 'end'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  " Start with all folds open
+  normal! zR
+
+  " First toggle should close block folds
+  call markdownfold#toggle_blocks()
+  AssertEqual -1, foldclosed(1), 'header fold should stay open'
+  AssertNotEqual -1, foldclosed(2), 'code block should be closed after first toggle'
+  AssertNotEqual -1, foldclosed(6), 'quote block should be closed after first toggle'
+
+  " Second toggle should open them again
+  call markdownfold#toggle_blocks()
+  AssertEqual -1, foldclosed(2), 'code block should be open after second toggle'
+  AssertEqual -1, foldclosed(6), 'quote block should be open after second toggle'
+  bdelete!
+
+Execute (close_blocks skips blocks inside closed header folds):
+  new
+  call setline(1, ['# Open Section', '```', 'visible code', '```', '# Closed Section', '```', 'hidden code', '```', 'end'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  " Open everything first
+  normal! zR
+  " Close the second header fold (line 5) to hide its code block
+  execute '5foldclose'
+  " Now close_blocks should only close the visible code block (line 2)
+  call markdownfold#close_blocks()
+  AssertNotEqual -1, foldclosed(2), 'visible code block should be closed'
+  AssertEqual 5, foldclosed(6), 'hidden code block should still be inside closed header fold'
+  bdelete!
+
+Execute (open_blocks skips blocks inside closed header folds):
+  new
+  call setline(1, ['# Open Section', '```', 'visible code', '```', '# Closed Section', '```', 'hidden code', '```', 'end'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  " Close all folds
+  normal! zM
+  " Open only the first header fold
+  execute '1foldopen'
+  " The code block at line 2 is now visible but closed; line 6 is hidden inside closed header
+  call markdownfold#open_blocks()
+  AssertEqual -1, foldclosed(2), 'visible code block should be opened'
+  AssertNotEqual -1, foldclosed(5), 'second header fold should remain closed'
+  bdelete!
+
+Execute (toggle_blocks ignores blocks inside closed header folds):
+  new
+  call setline(1, ['# Open Section', '```', 'code', '```', '> q1', '> q2', '# Closed Section', '```', 'hidden', '```', 'end'])
+  setlocal foldmethod=expr foldexpr=markdownfold#foldexpr()
+  normal! zx
+  normal! zR
+  " Close the second header fold
+  execute '7foldclose'
+  " Toggle should close only visible blocks
+  call markdownfold#toggle_blocks()
+  AssertNotEqual -1, foldclosed(2), 'visible code block should be closed'
+  AssertNotEqual -1, foldclosed(5), 'visible quote block should be closed'
+  AssertEqual 7, foldclosed(8), 'hidden code block should still be inside closed header'
+  " Toggle again should open only visible blocks
+  call markdownfold#toggle_blocks()
+  AssertEqual -1, foldclosed(2), 'visible code block should be open'
+  AssertEqual -1, foldclosed(5), 'visible quote block should be open'
+  AssertEqual 7, foldclosed(8), 'hidden code block should still be inside closed header'
+  bdelete!
+
+" ---------------------------------------------------------------------------
+" ftplugin integration: auto-setup, disable flag, syntax off, :b switch
+" ---------------------------------------------------------------------------
+
+Execute (ftplugin sets foldmethod/foldexpr automatically for markdown):
+  enew
+  file integ_setup.md
+  setlocal filetype=markdown
+  call setline(1, ['# Hello', 'world'])
+  AssertEqual 'expr', &l:foldmethod, 'foldmethod should be expr'
+  AssertEqual 'markdownfold#foldexpr()', &l:foldexpr, 'foldexpr should be set'
+  Assert exists(':MarkdownToggleBlocks') == 2, 'MarkdownToggleBlocks command should be defined'
+  normal! zx
+  AssertEqual 1, foldlevel(1), 'h1 should be level 1'
+  bdelete!
+
+Execute (folding still works with :syntax off):
+  syntax off
+  enew
+  file integ_synoff.md
+  setlocal filetype=markdown
+  call setline(1, ['# H', 'body', '## H2', 'x'])
+  normal! zx
+  AssertEqual 'expr', &l:foldmethod, 'foldmethod should be expr even with syntax off'
+  AssertEqual 1, foldlevel(1), 'h1 should be level 1 with syntax off'
+  AssertEqual 2, foldlevel(3), 'h2 should be level 2 with syntax off'
+  bdelete!
+  syntax on
+
+Execute (g:vim_markdown_folding_disabled prevents fold setup):
+  let g:vim_markdown_folding_disabled = 1
+  enew
+  file integ_disabled.md
+  setlocal filetype=markdown
+  call setline(1, ['# Hello', 'world'])
+  AssertNotEqual 'expr', &l:foldmethod, 'foldmethod should not be expr when folding disabled'
+  bdelete!
+  unlet g:vim_markdown_folding_disabled
+
+Execute (folding works after :b switch to markdown buffer):
+  new
+  file test_md.md
+  setlocal filetype=markdown
+  call setline(1, ['# Hello', 'world'])
+  let g:test_md_buf = bufnr('%')
+
+  set hidden
+  enew
+  file other.txt
+  setlocal filetype=text
+  call setline(1, ['plain text'])
+
+  execute 'buffer ' . g:test_md_buf
+  normal! zx
+
+  AssertEqual 'expr', &foldmethod, 'foldmethod should be expr after :b switch'
+  AssertEqual 'markdownfold#foldexpr()', &foldexpr, 'foldexpr should be set after :b switch'
+  AssertEqual 1, foldlevel(1), 'h1 should be level 1 after :b switch'
+  AssertEqual 1, foldlevel(2), 'text should be level 1 after :b switch'
+
+  bdelete!
+  bdelete!

@@ -20,6 +20,7 @@ for a long-standing syntax highlighting bug (see [Motivation](#motivation)).
 | Strikethrough | `~~text~~` highlighting |
 | Frontmatter | YAML (`---`), TOML (`+++`), and JSON (`{}`) frontmatter highlighting |
 | Concealing | Hide syntax characters (`*`, `` ` ``, `[`, `]`, etc.) when `conceallevel` is set |
+| Folding | Fold by header level, fenced code block, and quote block (`foldmethod=expr`); works with `:syntax off` |
 | Header navigation | `]]`, `[[`, `][`, `[]`, `]u`, `]h` for jumping between headers by level, sibling, or parent |
 | URL handling | `gx` to open URLs in a browser, `ge` to open linked files in Vim |
 | Table of contents | `:Toc`, `:Tocv`, `:Toch`, `:Toct` to view; `:InsertToc`, `:InsertNToc` to insert |
@@ -230,6 +231,38 @@ let g:vim_markdown_conceal = 0
 let g:vim_markdown_conceal_code_blocks = 0
 ```
 
+### Folding
+
+Markdown buffers fold by structure using `foldmethod=expr`:
+
+- **Headers** — each `#`/`##`/… header opens a fold at its level, so the
+  document outlines naturally and nested headers nest their folds.
+- **Fenced code blocks** — ` ``` ` and `~~~` blocks fold as one unit. A `#`
+  inside a code block is treated as code, not a header.
+- **Quote blocks** — a run of consecutive `>` lines folds together (a single
+  `>` line is left unfolded).
+
+Folding is driven entirely by the fold expression over the buffer text, so it
+keeps working with `:syntax off`.
+
+Three buffer-local commands fold/unfold just the code and quote blocks, leaving
+header folds untouched:
+
+| Command | Action |
+|---------|--------|
+| `:MarkdownFoldBlocks`   | Close all visible code-block and quote-block folds |
+| `:MarkdownUnfoldBlocks` | Open all visible code-block and quote-block folds |
+| `:MarkdownToggleBlocks` | Toggle code-block and quote-block folds |
+
+Disable folding entirely with the same flag as vim-markdown:
+
+```vim
+let g:vim_markdown_folding_disabled = 1
+```
+
+> **Note:** `foldmethod=expr` can be costly on very large files. If redraws feel
+> slow on huge documents, disable folding with the flag above.
+
 ### Header navigation
 
 The following key mappings are available in markdown buffers for navigating
@@ -408,6 +441,7 @@ All configuration is done through global variables set in your `.vimrc`
 | `g:vim_markdown_emphasis_multiline` | `1` | Allow bold/italic to span lines |
 | `g:vim_markdown_fenced_languages` | (see above) | List of fenced code languages |
 | `g:vim_markdown_blockquote_default_hi` | `1` | Apply the default readable italic colours to `mkdBlockquote`/`mkdBlockquoteHeading`. Set to `0` to keep your colorscheme's own colours. |
+| `g:vim_markdown_folding_disabled` | `0` | Set to `1` to disable header/code/quote folding |
 
 ### Concealing options
 
@@ -479,9 +513,11 @@ You can customize colors by setting highlight rules in your `.vimrc` (after
 
 ```
 vim-markdown-syntax-highlight/
-  ftdetect/markdown.vim    File type detection for .md files
-  syntax/markdown.vim      Syntax highlighting definitions
-  ftplugin/markdown.vim    Fenced highlighting, navigation, commands
+  ftdetect/markdown.vim            File type detection for .md files
+  syntax/markdown.vim              Syntax highlighting definitions
+  ftplugin/markdown.vim            Fenced highlighting, navigation, commands
+  ftplugin/markdown/folding.vim    Folding setup (foldmethod/foldexpr, commands)
+  autoload/markdownfold.vim        Fold expression and block fold/unfold logic
 ```
 
 ## Requirements
