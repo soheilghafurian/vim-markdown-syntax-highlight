@@ -1,0 +1,90 @@
+" test/blockquote_highlight.vader
+" Tests for blockquote highlighting: readable colours, inline markup inside
+" quotes, and the distinct (non-heading) colour for `# ...` lines in quotes.
+"
+" Run with:
+"   vim -u NONE -N +'set rtp+=.' +'runtime plugin/vader.vim' +'Vader! test/blockquote_highlight.vader'
+" or from within vim:
+"   :Vader test/blockquote_highlight.vader
+
+" ============================================================================
+" Blockquote markers and text
+" ============================================================================
+
+Given markdown (a plain blockquote):
+  > a plain quote line
+  normal text
+
+Execute (the > marker uses mkdBlockquoteDelimiter and text uses mkdBlockquote):
+  set filetype=markdown
+  unlet! b:current_syntax | runtime syntax/markdown.vim
+  AssertEqual 'mkdBlockquoteDelimiter', synIDattr(synID(1, 1, 1), 'name')
+  AssertEqual 'mkdBlockquote', synIDattr(synID(1, 3, 1), 'name')
+
+Execute (normal text outside the quote is not a blockquote):
+  set filetype=markdown
+  unlet! b:current_syntax | runtime syntax/markdown.vim
+  let syn = synIDattr(synID(2, 1, 1), 'name')
+  Assert syn !~# 'Blockquote', 'Line 2 should not be a blockquote, got: ' . syn
+
+Execute (mkdBlockquote is not linked to Comment):
+  set filetype=markdown
+  unlet! b:current_syntax | runtime syntax/markdown.vim
+  " The whole point of the change: quotes must not render as dim grey Comment.
+  let id = synIDtrans(hlID('mkdBlockquote'))
+  AssertNotEqual synIDtrans(hlID('Comment')), id, 'mkdBlockquote should not resolve to Comment'
+
+" ============================================================================
+" Inline markup inside blockquotes
+" ============================================================================
+
+Given markdown (blockquote with inline markup):
+  > text **bold** and *italic* and `code`
+
+Execute (bold, italic and code are highlighted inside the quote):
+  set filetype=markdown
+  unlet! b:current_syntax | runtime syntax/markdown.vim
+  " '> text ' is 7 chars; '**bold**' starts at col 8, bold text 'bold' at col 10
+  AssertEqual 'htmlBold', synIDattr(synID(1, 10, 1), 'name')
+  " '*italic*' -> italic text 'italic' begins after '...and '
+  let italicCol = match(getline(1), 'italic') + 1
+  AssertEqual 'htmlItalic', synIDattr(synID(1, italicCol, 1), 'name')
+  " '`code`' -> the code word
+  let codeCol = match(getline(1), 'code') + 1
+  let codeSyn = synIDattr(synID(1, codeCol, 1), 'name')
+  Assert codeSyn =~# 'Code', 'Code inside quote should be mkdCode*, got: ' . codeSyn
+
+" ============================================================================
+" `# ...` lines inside a quote
+" ============================================================================
+
+Given markdown (a heading-like line inside a quote and a real heading):
+  > # quoted hash line
+  > plain quote line
+  # real heading
+
+Execute (a # line inside a quote uses mkdBlockquoteHeading, not a heading group):
+  set filetype=markdown
+  unlet! b:current_syntax | runtime syntax/markdown.vim
+  " The '#' and its text inside the quote
+  AssertEqual 'mkdBlockquoteHeading', synIDattr(synID(1, 3, 1), 'name')
+  AssertEqual 'mkdBlockquoteHeading', synIDattr(synID(1, 5, 1), 'name')
+  " It must NOT be a real heading group
+  let syn = synIDattr(synID(1, 3, 1), 'name')
+  Assert syn !~# '^html[Hh][1-6]$' && syn !=# 'mkdHeading', 'quoted # must not be a heading, got: ' . syn
+
+Execute (a plain quote line is still mkdBlockquote, not mkdBlockquoteHeading):
+  set filetype=markdown
+  unlet! b:current_syntax | runtime syntax/markdown.vim
+  AssertEqual 'mkdBlockquote', synIDattr(synID(2, 3, 1), 'name')
+
+Execute (a real heading outside a quote is unaffected):
+  set filetype=markdown
+  unlet! b:current_syntax | runtime syntax/markdown.vim
+  AssertEqual 'mkdHeading', synIDattr(synID(3, 1, 1), 'name')
+  AssertEqual 'htmlH1', synIDattr(synID(3, 3, 1), 'name')
+
+Execute (mkdBlockquoteHeading and mkdBlockquote resolve to different colours):
+  set filetype=markdown
+  unlet! b:current_syntax | runtime syntax/markdown.vim
+  AssertNotEqual synIDtrans(hlID('mkdBlockquote')), synIDtrans(hlID('mkdBlockquoteHeading')), 'quoted headings should be distinguishable from quote text'

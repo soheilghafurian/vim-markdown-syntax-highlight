@@ -126,7 +126,10 @@ All standard markdown elements are highlighted:
 - **Links** — `[text](url)`, `[text][id]`, `[text][]`, `![image](url)`,
   autolinks (`https://...`), angle-bracket autolinks (`<https://...>`)
 - **Link definitions** — `[id]: url "title"`
-- **Blockquotes** — `> quoted text`
+- **Blockquotes** — `> quoted text`, shown in a readable italic colour (not
+  the dim grey of `Comment`) with inline markup (bold, italic, code,
+  strikethrough, links) highlighted inside; a `# ...` line inside a quote gets
+  its own colour without being styled as a real heading
 - **Lists** — unordered (`-`, `*`, `+`), ordered (`1.`), and checkboxes
   (`- [x]`, `- [ ]`)
 - **Horizontal rules** — `***`, `---`, `___` (with optional spaces)
@@ -404,6 +407,7 @@ All configuration is done through global variables set in your `.vimrc`
 | `g:vim_markdown_json_frontmatter` | `0` | Enable JSON frontmatter |
 | `g:vim_markdown_emphasis_multiline` | `1` | Allow bold/italic to span lines |
 | `g:vim_markdown_fenced_languages` | (see above) | List of fenced code languages |
+| `g:vim_markdown_blockquote_default_hi` | `1` | Apply the default readable italic colours to `mkdBlockquote`/`mkdBlockquoteHeading`. Set to `0` to keep your colorscheme's own colours. |
 
 ### Concealing options
 
@@ -456,7 +460,9 @@ You can customize colors by setting highlight rules in your `.vimrc` (after
 | `mkdLinkDef` | `mkdID` | Link definition ID |
 | `mkdLinkDefTarget` | `mkdURL` | Link definition URL |
 | `mkdLinkTitle` | `htmlString` | Link definition title |
-| `mkdBlockquote` | `Comment` | `> blockquote` text |
+| `mkdBlockquote` | italic green (`#8ec07c`) | `> blockquote` text |
+| `mkdBlockquoteDelimiter` | `Special` | The `>` quote markers |
+| `mkdBlockquoteHeading` | italic blue (`#83a598`) | `# ...` lines inside a quote (coloured, not styled as a heading) |
 | `mkdListItem` | `Identifier` | List markers (`-`, `*`, `1.`) |
 | `mkdListItemCheckbox` | `Identifier` | Checkbox `[x]`, `[ ]` |
 | `mkdRule` | `Identifier` | Horizontal rules |
