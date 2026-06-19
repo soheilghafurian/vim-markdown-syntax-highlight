@@ -21,6 +21,7 @@ for a long-standing syntax highlighting bug (see [Motivation](#motivation)).
 | Frontmatter | YAML (`---`), TOML (`+++`), and JSON (`{}`) frontmatter highlighting |
 | Concealing | Hide syntax characters (`*`, `` ` ``, `[`, `]`, etc.) when `conceallevel` is set |
 | Folding | Fold by header level, fenced code block, and quote block (`foldmethod=expr`); works with `:syntax off` |
+| Code block text object | `ic`/`ac` to operate on fenced code blocks (inner / around the fences); configurable key, never overrides existing objects |
 | Header navigation | `]]`, `[[`, `][`, `[]`, `]u`, `]h` for jumping between headers by level, sibling, or parent |
 | URL handling | `gx` to open URLs in a browser, `ge` to open linked files in Vim |
 | Table of contents | `:Toc`, `:Tocv`, `:Toch`, `:Toct` to view; `:InsertToc`, `:InsertNToc` to insert |
@@ -263,6 +264,50 @@ let g:vim_markdown_folding_disabled = 1
 > **Note:** `foldmethod=expr` can be costly on very large files. If redraws feel
 > slow on huge documents, disable folding with the flag above.
 
+### Code block text object
+
+A linewise text object for fenced code blocks, so you can operate on a whole
+` ``` `/`~~~` block at once:
+
+| Object | Selects |
+|--------|---------|
+| `ic`   | **i**nner — the lines *between* the fences (excludes ``` ``` ``` / `~~~`) |
+| `ac`   | **a**round — the whole block *including* both fence lines |
+
+Use it with any operator or in visual mode, e.g. `dac` (delete a block), `yic`
+(yank the code), `cic` (change the body), `vac` (select a block). Detection is
+robust: it figures out whether the cursor is actually inside a block, and does
+nothing when it isn't (so it won't grab the gap between two blocks).
+
+#### Changing the key
+
+The trigger letter defaults to `c` (giving `ic`/`ac`). Change it with:
+
+```vim
+" e.g. use 'f' (for "fence") -> if / af
+let g:vim_markdown_codeblock_textobj = 'f'
+```
+
+The default key is bound **only if it isn't already taken**, so it never
+overrides an existing text object (yours or another plugin's). To skip the
+default binding entirely and map it yourself, set the variable to an empty
+string and use the always-defined `<Plug>` mappings (in a markdown FileType
+autocmd, since the object is buffer-local):
+
+```vim
+let g:vim_markdown_codeblock_textobj = ''
+augroup my_markdown_textobj
+  autocmd!
+  autocmd FileType markdown omap <buffer> ab <Plug>(MarkdownCodeBlockA)
+  autocmd FileType markdown xmap <buffer> ab <Plug>(MarkdownCodeBlockA)
+  autocmd FileType markdown omap <buffer> ib <Plug>(MarkdownCodeBlockI)
+  autocmd FileType markdown xmap <buffer> ib <Plug>(MarkdownCodeBlockI)
+augroup END
+```
+
+Setting `g:vim_markdown_no_default_key_mappings = 1` also disables the default
+binding (the `<Plug>` mappings remain available).
+
 ### Header navigation
 
 The following key mappings are available in markdown buffers for navigating
@@ -442,6 +487,7 @@ All configuration is done through global variables set in your `.vimrc`
 | `g:vim_markdown_fenced_languages` | (see above) | List of fenced code languages |
 | `g:vim_markdown_blockquote_default_hi` | `1` | Apply the default readable italic colours to `mkdBlockquote`/`mkdBlockquoteHeading`. Set to `0` to keep your colorscheme's own colours. |
 | `g:vim_markdown_folding_disabled` | `0` | Set to `1` to disable header/code/quote folding |
+| `g:vim_markdown_codeblock_textobj` | `'c'` | Trigger letter for the code block text object (`ic`/`ac`). Set to another letter to rebind, or `''` to skip the default binding |
 
 ### Concealing options
 

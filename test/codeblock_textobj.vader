@@ -1,0 +1,155 @@
+" test/codeblock_textobj.vader
+" Tests for the fenced code block text object (ic / ac by default).
+"
+" Run with:
+"   vim -u NONE -N +'set rtp+=.' +'set rtp+=/path/to/vader.vim' +'filetype plugin on' +'runtime plugin/vader.vim' +'Vader! test/codeblock_textobj.vader'
+"
+" NOTE: operator + text-object behaviour cannot be exercised in a non-interactive
+" -es/script harness (it mis-handles the operator-pending -> visual transition,
+" even for known-good plugins), so these run under real Vim via :Vader.
+
+" ---------------------------------------------------------------------------
+" Selection: inner vs around
+" ---------------------------------------------------------------------------
+
+Given markdown (block with surrounding text):
+  # H
+  before
+  ```python
+  code A
+  code B
+  ```
+  after
+
+Execute (dac from inside removes the whole block including fences):
+  setlocal filetype=markdown
+  call cursor(4, 1)
+  normal dac
+  AssertEqual ['# H', 'before', 'after'], getline(1, '$')
+
+Execute (dic from inside removes only the inner lines, keeping fences):
+  setlocal filetype=markdown
+  call cursor(4, 1)
+  normal dic
+  AssertEqual ['# H', 'before', '```python', '```', 'after'], getline(1, '$')
+
+Execute (dac works with the cursor on the opening fence line):
+  setlocal filetype=markdown
+  call cursor(3, 1)
+  normal dac
+  AssertEqual ['# H', 'before', 'after'], getline(1, '$')
+
+Execute (dac works with the cursor on the closing fence line):
+  setlocal filetype=markdown
+  call cursor(6, 1)
+  normal dac
+  AssertEqual ['# H', 'before', 'after'], getline(1, '$')
+
+" ---------------------------------------------------------------------------
+" Outside a block: no-op
+" ---------------------------------------------------------------------------
+
+Execute (dac outside any block does nothing):
+  setlocal filetype=markdown
+  call cursor(2, 1)
+  silent! normal dac
+  AssertEqual ['# H', 'before', '```python', 'code A', 'code B', '```', 'after'], getline(1, '$')
+
+Given markdown (gap between two blocks):
+  ```
+  a
+  ```
+  middle
+  ```
+  b
+  ```
+
+Execute (cursor in the gap between two blocks selects nothing):
+  setlocal filetype=markdown
+  call cursor(4, 1)
+  silent! normal dac
+  AssertEqual ['```', 'a', '```', 'middle', '```', 'b', '```'], getline(1, '$')
+
+" ---------------------------------------------------------------------------
+" Tilde fences
+" ---------------------------------------------------------------------------
+
+Given markdown (tilde-fenced block):
+  intro
+  ~~~
+  x = 1
+  ~~~
+  done
+
+Execute (dac handles ~~~ fences):
+  setlocal filetype=markdown
+  call cursor(3, 1)
+  normal dac
+  AssertEqual ['intro', 'done'], getline(1, '$')
+
+" ---------------------------------------------------------------------------
+" Picks the correct block among several
+" ---------------------------------------------------------------------------
+
+Given markdown (two separate blocks):
+  ```
+  first
+  ```
+  text
+  ```
+  second
+  ```
+
+Execute (dic in the second block only touches the second block):
+  setlocal filetype=markdown
+  call cursor(6, 1)
+  normal dic
+  AssertEqual ['```', 'first', '```', 'text', '```', '```'], getline(1, '$')
+
+" ---------------------------------------------------------------------------
+" Mapping configuration and non-override behaviour
+" ---------------------------------------------------------------------------
+
+Execute (default binds ic/ac and always defines the <Plug> maps):
+  new
+  setlocal filetype=markdown
+  Assert maparg('ac', 'o') =~# 'MarkdownCodeBlockA', 'ac should map to the <Plug>'
+  Assert maparg('ic', 'o') =~# 'MarkdownCodeBlockI', 'ic should map to the <Plug>'
+  Assert !empty(maparg('<Plug>(MarkdownCodeBlockA)', 'o')), '<Plug> A (o) defined'
+  Assert !empty(maparg('<Plug>(MarkdownCodeBlockI)', 'x')), '<Plug> I (x) defined'
+  bdelete!
+
+Execute (does not override a pre-existing ic mapping):
+  new
+  onoremap <buffer> ic :<C-u>echo 'mine'<CR>
+  setlocal filetype=markdown
+  Assert maparg('ic', 'o') !~# 'MarkdownCodeBlock', 'pre-existing ic must not be overridden'
+  bdelete!
+
+Execute (g:vim_markdown_codeblock_textobj changes the trigger letter):
+  let g:vim_markdown_codeblock_textobj = 'f'
+  new
+  setlocal filetype=markdown
+  Assert maparg('af', 'o') =~# 'MarkdownCodeBlockA', 'af should be bound with custom char'
+  Assert maparg('if', 'o') =~# 'MarkdownCodeBlockI', 'if should be bound with custom char'
+  AssertEqual '', maparg('ac', 'o'), 'default ac should not be bound when char is f'
+  bdelete!
+  unlet g:vim_markdown_codeblock_textobj
+
+Execute (empty g:vim_markdown_codeblock_textobj skips default binding, keeps <Plug>):
+  let g:vim_markdown_codeblock_textobj = ''
+  new
+  setlocal filetype=markdown
+  AssertEqual '', maparg('ac', 'o'), 'no default key when char is empty'
+  Assert !empty(maparg('<Plug>(MarkdownCodeBlockA)', 'o')), '<Plug> still available'
+  bdelete!
+  unlet g:vim_markdown_codeblock_textobj
+
+Execute (g:vim_markdown_no_default_key_mappings disables the default binding):
+  let g:vim_markdown_no_default_key_mappings = 1
+  new
+  setlocal filetype=markdown
+  AssertEqual '', maparg('ac', 'o'), 'no default key when all default mappings disabled'
+  Assert !empty(maparg('<Plug>(MarkdownCodeBlockA)', 'o')), '<Plug> still available'
+  bdelete!
+  unlet g:vim_markdown_no_default_key_mappings

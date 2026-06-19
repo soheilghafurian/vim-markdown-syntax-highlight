@@ -753,6 +753,84 @@ if !get(g:, 'vim_markdown_no_default_key_mappings', 0)
 endif
 
 " ============================================================================
+" Code block text object
+" ============================================================================
+" Linewise text object for fenced code blocks:
+"   i<char> selects the lines between the fences (excluding ``` / ~~~)
+"   a<char> selects the whole block including both fences
+" Default <char> is 'c' (-> ic / ac); change with g:vim_markdown_codeblock_textobj
+" (set to '' to skip the default binding and use the <Plug> maps instead).
+"
+" Fence detection matches the rest of the plugin (``` and ~~~). Blocks are
+" paired sequentially (markdown fences don't nest); an unclosed final block
+" runs to end-of-file. Returns [] when the cursor is outside any block.
+
+function! s:CodeBlockBounds()
+    let l:cl = line('.')
+    let l:open = 0
+    let l:in_block = 0
+    for l:lnum in range(1, line('$'))
+        if getline(l:lnum) =~# '^\s*```\|^\s*\~\~\~'
+            if l:in_block
+                " closing fence: block spans [l:open, l:lnum]
+                if l:cl >= l:open && l:cl <= l:lnum
+                    return [l:open, l:lnum]
+                endif
+                let l:in_block = 0
+            else
+                let l:open = l:lnum
+                let l:in_block = 1
+            endif
+        endif
+    endfor
+    " Unclosed final block: runs to end-of-file.
+    if l:in_block && l:cl >= l:open
+        return [l:open, line('$')]
+    endif
+    return []
+endfunction
+
+function! s:CodeBlockTextObj(inner)
+    let l:bounds = s:CodeBlockBounds()
+    if empty(l:bounds)
+        return
+    endif
+    let [l:open, l:close] = l:bounds
+    if a:inner
+        let l:start = l:open + 1
+        let l:end = l:close - 1
+        if l:start > l:end
+            " empty block: nothing to select
+            return
+        endif
+    else
+        let l:start = l:open
+        let l:end = l:close
+    endif
+    call cursor(l:start, 1)
+    normal! V
+    call cursor(l:end, 1)
+endfunction
+
+onoremap <buffer> <silent> <Plug>(MarkdownCodeBlockA) :<C-u>call <sid>CodeBlockTextObj(0)<cr>
+xnoremap <buffer> <silent> <Plug>(MarkdownCodeBlockA) :<C-u>call <sid>CodeBlockTextObj(0)<cr>
+onoremap <buffer> <silent> <Plug>(MarkdownCodeBlockI) :<C-u>call <sid>CodeBlockTextObj(1)<cr>
+xnoremap <buffer> <silent> <Plug>(MarkdownCodeBlockI) :<C-u>call <sid>CodeBlockTextObj(1)<cr>
+
+if !get(g:, 'vim_markdown_no_default_key_mappings', 0)
+    let s:cb_char = get(g:, 'vim_markdown_codeblock_textobj', 'c')
+    for [s:cb_lhs, s:cb_plug] in [['a' . s:cb_char, 'MarkdownCodeBlockA'], ['i' . s:cb_char, 'MarkdownCodeBlockI']]
+        " Only bind if the key is free in both operator-pending and visual mode,
+        " so we never clobber an existing text object (ours or another plugin's).
+        if !empty(s:cb_char) && empty(maparg(s:cb_lhs, 'o')) && empty(maparg(s:cb_lhs, 'x'))
+                    \ && !hasmapto('<Plug>(' . s:cb_plug . ')', 'o') && !hasmapto('<Plug>(' . s:cb_plug . ')', 'x')
+            execute 'omap <buffer> ' . s:cb_lhs . ' <Plug>(' . s:cb_plug . ')'
+            execute 'xmap <buffer> ' . s:cb_lhs . ' <Plug>(' . s:cb_plug . ')'
+        endif
+    endfor
+endif
+
+" ============================================================================
 " Commands
 " ============================================================================
 
