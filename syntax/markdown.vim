@@ -184,6 +184,19 @@ if get(g:, 'vim_markdown_math', 0)
   syntax include @tex syntax/tex.vim
   syntax region mkdMath start="\\\@<!\$" end="\$" skip="\\\$" contains=@tex keepend
   syntax region mkdMath start="\\\@<!\$\$" end="\$\$" skip="\\\$" contains=@tex keepend
+
+  " When 'conceallevel' is set, the included TeX syntax conceals math commands
+  " into their Unicode glyphs (\alpha -> a, x^2 -> x^2, \leq -> <=, \sum -> S).
+  " Vim draws those substituted glyphs with the global `Conceal` highlight
+  " group, NOT the math syntax colour. Several dark colorschemes (vim's own
+  " `slate`, for one) set Conceal to a near-black grey (e.g. Grey30), which
+  " leaves the concealed symbols almost invisible on a black background. Link
+  " Conceal to Normal so the glyphs stay as readable as the surrounding text.
+  " Opt out with `let g:vim_markdown_math_conceal_hi = 0` to keep your
+  " colorscheme's own Conceal colour (or set your own `highlight Conceal ...`).
+  if get(g:, 'vim_markdown_math_conceal_hi', 1)
+    highlight! link Conceal Normal
+  endif
 endif
 
 " Strikethrough

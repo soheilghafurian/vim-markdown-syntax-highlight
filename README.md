@@ -187,6 +187,21 @@ Enable LaTeX math syntax highlighting inside `$...$` (inline) and `$$...$$`
 let g:vim_markdown_math = 1
 ```
 
+When `conceallevel` is set, the included TeX syntax conceals math commands into
+their Unicode glyphs (`\alpha` → α, `x^2` → x², `\leq` → ≤, `\sum` → ∑). Vim
+draws those substituted glyphs with the global `Conceal` highlight group, *not*
+the math syntax colour. Several dark colorschemes (vim's own `slate`, for one)
+set `Conceal` to a near-black grey, which leaves the concealed symbols almost
+invisible on a black background. With math enabled, the plugin links `Conceal`
+to `Normal` so the glyphs stay as readable as the surrounding text. To keep your
+colorscheme's own `Conceal` colour instead:
+
+```vim
+let g:vim_markdown_math_conceal_hi = 0
+" ...and optionally set your own, e.g.:
+highlight Conceal guifg=#bbbbbb
+```
+
 ### Strikethrough
 
 Enable `~~strikethrough~~` highlighting:
@@ -479,6 +494,7 @@ All configuration is done through global variables set in your `.vimrc`
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `g:vim_markdown_math` | `0` | Enable LaTeX math highlighting |
+| `g:vim_markdown_math_conceal_hi` | `1` | When math is on, link `Conceal` to `Normal` so concealed math glyphs (e.g. α, x², ≤) stay readable. Set to `0` to keep your colorscheme's own `Conceal` colour. |
 | `g:vim_markdown_strikethrough` | `0` | Enable `~~strikethrough~~` |
 | `g:vim_markdown_frontmatter` | `0` | Enable YAML frontmatter |
 | `g:vim_markdown_toml_frontmatter` | `0` | Enable TOML frontmatter |

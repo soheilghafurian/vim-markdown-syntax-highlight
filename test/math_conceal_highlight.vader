@@ -1,0 +1,58 @@
+" test/math_conceal_highlight.vader
+" Tests for LaTeX math conceal highlighting. When 'conceallevel' is set, the
+" included TeX syntax conceals math commands into Unicode glyphs (\alpha -> α,
+" x^2 -> x², \leq -> ≤). Vim draws those glyphs with the global `Conceal`
+" highlight group, which many dark colorschemes set to a near-black grey,
+" leaving the symbols almost invisible. The plugin links Conceal to Normal so
+" they stay readable; this is opt-out via g:vim_markdown_math_conceal_hi.
+"
+" Run with:
+"   vim -u NONE -N +'set rtp+=.' +'runtime plugin/vader.vim' +'Vader! test/math_conceal_highlight.vader'
+" or from within vim:
+"   :Vader test/math_conceal_highlight.vader
+
+" ============================================================================
+" Default: Conceal is made readable when math is enabled
+" ============================================================================
+
+Given markdown (inline and display math):
+  Inline $E = mc^2$ here.
+
+  $$\sum_{i=1}^{n} x_i^2 \leq \alpha$$
+
+Execute (with math on, Conceal is linked to Normal so glyphs stay readable):
+  let g:vim_markdown_math = 1
+  unlet! g:vim_markdown_math_conceal_hi
+  " A dark colorscheme would leave Conceal as a dim grey; emulate that.
+  highlight Conceal guifg=#666666 ctermfg=242
+  set filetype=markdown
+  unlet! b:current_syntax | runtime syntax/markdown.vim
+  AssertEqual synIDtrans(hlID('Normal')), synIDtrans(hlID('Conceal')),
+  \ 'Conceal should resolve to Normal so concealed math glyphs are readable'
+
+" ============================================================================
+" Opt-out: leave the colorscheme's own Conceal colour alone
+" ============================================================================
+
+Execute (with the opt-out, Conceal keeps the colorscheme colour):
+  let g:vim_markdown_math = 1
+  let g:vim_markdown_math_conceal_hi = 0
+  highlight Conceal guifg=#666666 ctermfg=242
+  set filetype=markdown
+  unlet! b:current_syntax | runtime syntax/markdown.vim
+  AssertNotEqual synIDtrans(hlID('Normal')), synIDtrans(hlID('Conceal')),
+  \ 'With the opt-out, Conceal should keep its dim colour, not become Normal'
+  unlet! g:vim_markdown_math_conceal_hi
+
+" ============================================================================
+" Math disabled: the plugin must not touch Conceal at all
+" ============================================================================
+
+Execute (with math off, Conceal is left untouched):
+  let g:vim_markdown_math = 0
+  unlet! g:vim_markdown_math_conceal_hi
+  highlight Conceal guifg=#666666 ctermfg=242
+  set filetype=markdown
+  unlet! b:current_syntax | runtime syntax/markdown.vim
+  AssertNotEqual synIDtrans(hlID('Normal')), synIDtrans(hlID('Conceal')),
+  \ 'With math off, the plugin should not relink Conceal'
