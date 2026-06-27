@@ -192,15 +192,23 @@ their Unicode glyphs (`\alpha` → α, `x^2` → x², `\leq` → ≤, `\sum` →
 draws those substituted glyphs with the global `Conceal` highlight group, *not*
 the math syntax colour. Several dark colorschemes (vim's own `slate`, for one)
 set `Conceal` to a near-black grey, which leaves the concealed symbols almost
-invisible on a black background. With math enabled, the plugin links `Conceal`
-to `Normal` so the glyphs stay as readable as the surrounding text. To keep your
-colorscheme's own `Conceal` colour instead:
+invisible on a black background. With math enabled, the plugin gives `Conceal` a
+calm, readable foreground (a dimmed white, `#cccccc`) so the glyphs sit at
+roughly body-text intensity rather than out-shining the prose. Change the shade,
+or opt out entirely:
 
 ```vim
+" Use a different colour for the concealed glyphs:
+let g:vim_markdown_math_conceal_color = '#9e9e9e'
+
+" ...or keep your colorscheme's own Conceal colour untouched:
 let g:vim_markdown_math_conceal_hi = 0
-" ...and optionally set your own, e.g.:
-highlight Conceal guifg=#bbbbbb
 ```
+
+Note that `Conceal` is a single global highlight group shared by all concealed
+text, so this also affects non-math conceal. (It is **incompatible** with
+plugins like `indentLine` that repurpose `Conceal` for their own rendering —
+use a background-based indent-guide plugin instead.)
 
 ### Strikethrough
 
@@ -494,7 +502,8 @@ All configuration is done through global variables set in your `.vimrc`
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `g:vim_markdown_math` | `0` | Enable LaTeX math highlighting |
-| `g:vim_markdown_math_conceal_hi` | `1` | When math is on, link `Conceal` to `Normal` so concealed math glyphs (e.g. α, x², ≤) stay readable. Set to `0` to keep your colorscheme's own `Conceal` colour. |
+| `g:vim_markdown_math_conceal_hi` | `1` | When math is on, give `Conceal` a readable foreground so concealed math glyphs (e.g. α, x², ≤) don't get lost in a dark colorscheme. Set to `0` to keep your colorscheme's own `Conceal` colour. |
+| `g:vim_markdown_math_conceal_color` | `'#cccccc'` | The foreground colour used for concealed math glyphs when `g:vim_markdown_math_conceal_hi` is on. |
 | `g:vim_markdown_strikethrough` | `0` | Enable `~~strikethrough~~` |
 | `g:vim_markdown_frontmatter` | `0` | Enable YAML frontmatter |
 | `g:vim_markdown_toml_frontmatter` | `0` | Enable TOML frontmatter |

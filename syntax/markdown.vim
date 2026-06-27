@@ -190,12 +190,15 @@ if get(g:, 'vim_markdown_math', 0)
   " Vim draws those substituted glyphs with the global `Conceal` highlight
   " group, NOT the math syntax colour. Several dark colorschemes (vim's own
   " `slate`, for one) set Conceal to a near-black grey (e.g. Grey30), which
-  " leaves the concealed symbols almost invisible on a black background. Link
-  " Conceal to Normal so the glyphs stay as readable as the surrounding text.
-  " Opt out with `let g:vim_markdown_math_conceal_hi = 0` to keep your
-  " colorscheme's own Conceal colour (or set your own `highlight Conceal ...`).
+  " leaves the concealed symbols almost invisible on a black background. Give
+  " Conceal a calm, readable foreground (a dimmed white) so the glyphs sit at
+  " roughly body-text intensity instead of out-shining the prose and the
+  " colour-highlighted parts of the formula. Change the shade with
+  " g:vim_markdown_math_conceal_color, or opt out entirely with
+  " `let g:vim_markdown_math_conceal_hi = 0` to keep your colorscheme's colour.
   if get(g:, 'vim_markdown_math_conceal_hi', 1)
-    highlight! link Conceal Normal
+    let s:mathConcealColor = get(g:, 'vim_markdown_math_conceal_color', '#cccccc')
+    execute 'highlight Conceal guifg=' . s:mathConcealColor . ' guibg=NONE ctermfg=252 ctermbg=NONE'
   endif
 endif
 
