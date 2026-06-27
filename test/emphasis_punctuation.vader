@@ -1,0 +1,39 @@
+" test/emphasis_punctuation.vader
+" Asterisk emphasis (*, **, ***) must be able to open right after punctuation,
+" e.g. `(**bold**)`, `[*italic*]`, `"**q**"`, not only after whitespace/BOL.
+" It must still NOT open mid-word (`5**2`, `a*b`, `2*3*4`).
+"
+" Run with:
+"   vim -u NONE -N +'set rtp+=.' +'runtime plugin/vader.vim' +'Vader! test/emphasis_punctuation.vader'
+
+Given markdown (emphasis wrapped in punctuation, plus non-emphasis):
+  Parens (**bold**) and [*ital*] and "***both***" here.
+  Regression 5**2 and a*b and 2*3*4 stay plain.
+
+Execute (set up markdown syntax):
+  set filetype=markdown
+  unlet! b:current_syntax | runtime syntax/markdown.vim
+
+Execute (** after "(" renders bold):
+  let col = stridx(getline(1), 'bold') + 1
+  AssertEqual 'htmlBold', synIDattr(synID(1, col, 1), 'name'),
+  \ '**bold** should render even when preceded by "("'
+
+Execute (* after "[" renders italic):
+  let col = stridx(getline(1), 'ital') + 1
+  AssertEqual 'htmlItalic', synIDattr(synID(1, col, 1), 'name'),
+  \ '*ital* should render even when preceded by "["'
+
+Execute (*** after a quote renders bold-italic):
+  let col = stridx(getline(1), 'both') + 1
+  AssertEqual 'htmlBoldItalic', synIDattr(synID(1, col, 1), 'name'),
+  \ '***both*** should render even when preceded by a quote'
+
+Execute (intra-word asterisks stay plain text):
+  let l = getline(2)
+  for kw in ['5**2', 'a*b', '2*3*4']
+    let col = stridx(l, kw) + 1
+    let nm = synIDattr(synID(2, col, 1), 'name')
+    Assert nm !~? 'bold\|italic',
+    \ kw . ' must not start emphasis, got: ' . nm
+  endfor
