@@ -1,0 +1,73 @@
+" test/html_lessthan.vader
+" Regression tests for the bare `<` bug. The bundled html.vim defines htmlTag as
+" `start=+<[^/]+ end=+>+` and renders <b>/<i>/<em>/<s>/... as multi-line regions,
+" so a literal `<` in prose ("a < b", "a<b", "<s value") opened a region with no
+" closing `>`/tag and swallowed all highlighting for the rest of the buffer.
+" markdown.vim constrains the tag start (CommonMark: `<` + letter, or </, <!, <?)
+" and drops the runaway inline-formatting regions.
+"
+" Run with:
+"   vim -u NONE -N +'set rtp+=.' +'runtime plugin/vader.vim' +'Vader! test/html_lessthan.vader'
+
+" ============================================================================
+" A bare `<` with spaces must not start a tag or affect later lines
+" ============================================================================
+
+Given markdown (a less-than in prose, then markup):
+  If a < b then text.
+  This **bold** still works.
+
+Execute (set up markdown syntax):
+  let g:vim_markdown_math = 0
+  set filetype=markdown
+  unlet! b:current_syntax | runtime syntax/markdown.vim
+
+Execute (the `<` is plain text, not htmlTag):
+  " column of the `<` in "If a < b"
+  let col = stridx(getline(1), '<') + 1
+  AssertEqual 'mkdNonListItemBlock', synIDattr(synID(1, col, 1), 'name'),
+  \ 'A bare "<" in prose should be plain text, not htmlTag'
+
+Execute (bold on the next line still highlights -> no runaway):
+  let col = stridx(getline(2), 'bold') + 1
+  AssertEqual 'htmlBold', synIDattr(synID(2, col, 1), 'name'),
+  \ 'Markup after a bare "<" must still highlight (region did not run away)'
+
+" ============================================================================
+" `<` glued to a letter ("a<b", "<s ...") must not start a runaway region
+" ============================================================================
+
+Given markdown (less-than glued to letters, then markup):
+  Inequality a<b and the <s value here.
+  Then **strong** must still work.
+
+Execute (set up markdown syntax):
+  set filetype=markdown
+  unlet! b:current_syntax | runtime syntax/markdown.vim
+
+Execute (the glued "<b" / "<s" do not swallow later markup):
+  let col = stridx(getline(2), 'strong') + 1
+  AssertEqual 'htmlBold', synIDattr(synID(2, col, 1), 'name'),
+  \ '"<b"/"<s" without a closing tag must not run away into later lines'
+
+" ============================================================================
+" Real HTML tags still highlight, and don't run away when well-formed
+" ============================================================================
+
+Given markdown (a real tag then later markup):
+  A tag <div class="x"> here.
+  And *italic* below.
+
+Execute (set up markdown syntax):
+  set filetype=markdown
+  unlet! b:current_syntax | runtime syntax/markdown.vim
+
+Execute (the tag name highlights as htmlTagName):
+  let col = stridx(getline(1), 'div') + 1
+  AssertEqual 'htmlTagName', synIDattr(synID(1, col, 1), 'name'),
+  \ 'A real <div ...> tag should still highlight its tag name'
+
+Execute (italic on the next line is unaffected):
+  let col = stridx(getline(2), 'italic') + 1
+  AssertEqual 'htmlItalic', synIDattr(synID(2, col, 1), 'name'),
+  \ 'Markup after a real tag should highlight normally'

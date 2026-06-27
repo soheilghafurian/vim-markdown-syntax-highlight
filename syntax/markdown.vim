@@ -34,6 +34,30 @@ endif
 syntax spell toplevel
 syntax case ignore
 
+" Constrain HTML tags so a bare `<` doesn't break highlighting.
+"
+" html.vim defines `htmlTag` as `start=+<[^/]+ end=+>+`, so ANY `<` not followed
+" by `/` opens a tag region that ends only at the next `>`. In prose a literal
+" `<` ("a < b", "x < 5", "<3") has no following `>`, so the region runs away and
+" swallows the rest of the buffer, killing all highlighting after it.
+"
+" CommonMark only opens an HTML tag when `<` is followed by a letter (open tag),
+" or by `/`, `!`, `?` (close tag / declaration / processing instruction).
+" Redefine the two tag regions with that stricter start, plus `keepend oneline`
+" so even a malformed real tag can't span lines and run away.
+syntax clear htmlTag htmlEndTag
+syntax region htmlTag    start=+<[a-zA-Z!?]+ end=+>+ keepend oneline contains=htmlTagN,htmlString,htmlArg,htmlValue,htmlTagError,htmlEvent,htmlCssDefinition,@htmlPreproc,@htmlArgCluster
+syntax region htmlEndTag start=+</[a-zA-Z]+  end=+>+ keepend oneline contains=htmlTagN,htmlTagError
+
+" Same problem, worse: html.vim renders <b> <strong> <i> <em> <u> <s> <del>
+" <strike> as MULTI-LINE regions (e.g. `start="<b\>" end="</b>"`). A stray one
+" in prose ("a<b", "the <s value") with no closing tag swallows the rest of the
+" file. Drop those rendering regions; the highlight groups stay defined, and our
+" own markdown bold/italic/strike regions (below) reuse them. Literal inline
+" HTML like <b>x</b> then just shows as plain tags, which is fine for markdown.
+syntax clear htmlBold htmlBoldUnderline htmlBoldItalic htmlBoldUnderlineItalic
+syntax clear htmlUnderline htmlUnderlineItalic htmlItalic htmlStrike
+
 " SYNC FIX: This is the core improvement over vim-markdown.
 "
 " vim-markdown uses `syntax sync linebreaks=1`, which tells Vim to only look
