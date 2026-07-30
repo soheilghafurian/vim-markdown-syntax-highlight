@@ -115,7 +115,19 @@ endfunction
 function! s:MarkdownRefreshSyntax(force)
     " vint: next-line -ProhibitEqualTildeOperator
     if s:IsHighlightSourcesEnabledForBuffer() && line('$') > 1 && &syntax != 'OFF'
-        call s:MarkdownHighlightSources(a:force)
+        let l:force = a:force
+        " If syntax/markdown.vim has been re-sourced since we last synced
+        " (e.g. a `:syntax off` + `:syntax on` cycle, which clears the
+        " buffer's syntax items), our cache of "languages already included"
+        " is stale even though it still lists them -- their syntax items are
+        " gone. Drop the cache and force a full rebuild.
+        let l:generation = get(b:, 'mkd_syntax_generation', 0)
+        if get(b:, 'mkd_synced_generation', -1) != l:generation
+            unlet! b:mkd_known_filetypes b:mkd_included_filetypes
+            let b:mkd_synced_generation = l:generation
+            let l:force = 1
+        endif
+        call s:MarkdownHighlightSources(l:force)
         call s:ApplySync()
     endif
 endfunction

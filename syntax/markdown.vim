@@ -270,6 +270,14 @@ MkdHiLink mkdLinkTitle        htmlString
 MkdHiLink mkdDelimiter        Delimiter
 MkdHiLink mkdMath             Statement
 
+" Bumped every time this file actually (re)runs -- e.g. `:syntax off` then
+" `:syntax on`, which clears the buffer's syntax items (including any
+" fenced-language clusters ftplugin/markdown.vim included) and re-sources
+" this file. ftplugin/markdown.vim compares this against the generation it
+" last synced to detect when its b:mkd_known_filetypes/b:mkd_included_filetypes
+" cache has gone stale and needs a full rebuild.
+let b:mkd_syntax_generation = get(b:, 'mkd_syntax_generation', 0) + 1
+
 let b:current_syntax = 'mkd'
 
 delcommand MkdHiLink
