@@ -112,7 +112,7 @@ execute 'syntax region htmlBoldItalic matchgroup=mkdBoldItalic start="\%(^\|\s\)
 syntax region mkdFootnotes matchgroup=mkdDelimiter start="\[^"    end="\]"
 execute 'syntax region mkdID matchgroup=mkdDelimiter    start="\["    end="\]" contained oneline' . s:conceal
 execute 'syntax region mkdURL matchgroup=mkdDelimiter   start="("     end=")"  contained oneline' . s:conceal
-execute 'syntax region mkdLink matchgroup=mkdDelimiter  start="\\\@<!!\?\[\ze[^]\n]*\n\?[^]\n]*\][[(]" end="\]" contains=@mkdNonListItem,@Spell nextgroup=mkdURL,mkdID skipwhite' . s:concealends
+execute 'syntax region mkdLink matchgroup=mkdDelimiter  start="\\\@<!!\?\[\ze\%(\\.\|[^]\\\n]\)*\n\?\%(\\.\|[^]\\\n]\)*\][[(]" end="\\\@<!\]" contains=@mkdNonListItem,@Spell nextgroup=mkdURL,mkdID skipwhite' . s:concealends
 
 " Autolinks (without angle brackets)
 syntax match   mkdInlineURL /https\?:\/\/\(\w\+\(:\w\+\)\?@\)\?\([A-Za-z0-9][-_0-9A-Za-z]*\.\)\{1,}\(\w\{2,}\.\?\)\{1,}\(:[0-9]\{1,5}\)\?[^] \t]*/

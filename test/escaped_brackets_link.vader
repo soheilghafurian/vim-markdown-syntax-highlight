@@ -1,0 +1,25 @@
+" test/escaped_brackets_link.vader
+" Link text may contain escaped brackets (`\[` / `\]`); the link must still
+" render (delimiters and URL concealed) and end at the real closing `]`.
+"
+" Run with:
+"   vim -u NONE -N +'set rtp+=.' +'runtime plugin/vader.vim' +'Vader! test/escaped_brackets_link.vader'
+
+Given markdown (link with escaped brackets in text, plus a plain link):
+  [Run \[dev me\] job - Databricks](https://example.com/run?o=1)
+  [plain](https://example.com/plain)
+
+Execute (set up markdown syntax):
+  set filetype=markdown conceallevel=2
+  unlet! b:current_syntax | runtime syntax/markdown.vim
+
+Execute (URL of link with escaped brackets is concealed):
+  let col = stridx(getline(1), 'https') + 1
+  AssertEqual 'mkdURL', synIDattr(synID(1, col, 1), 'name')
+
+Execute (opening bracket is a concealed delimiter):
+  AssertEqual 1, synconcealed(1, 1)[0]
+
+Execute (plain link still works):
+  let col = stridx(getline(2), 'https') + 1
+  AssertEqual 'mkdURL', synIDattr(synID(2, col, 1), 'name')
